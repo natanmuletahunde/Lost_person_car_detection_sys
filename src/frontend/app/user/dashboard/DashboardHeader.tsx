@@ -181,7 +181,7 @@ export default function DashboardHeader({
                   )}
                 </ScrollArea>
                 <Menu.Divider />
-                <Menu.Item component={Link} href={getUserRoute("/user/notifications")}>
+                <Menu.Item component={Link} href={getUserRoute("/user/alert")}>
                   View all
                 </Menu.Item>
               </Menu.Dropdown>

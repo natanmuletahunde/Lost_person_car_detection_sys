@@ -82,7 +82,7 @@ import MainFooter from "../../components/MainFooter";
 import { useMediaQuery } from "@mantine/hooks";
 import { motion } from "framer-motion";
 
-const PRIMARY_COLOR = '#0034D1';
+const PRIMARY_COLOR = "#0034D1";
 const PRIMARY_GRADIENT = `linear-gradient(135deg, ${PRIMARY_COLOR} 0%, #0066ff 100%)`;
 
 export default function HowItWorksPage() {
@@ -95,8 +95,8 @@ export default function HowItWorksPage() {
   const isTablet = useMediaQuery("(max-width: 1024px)");
 
   // Helper to get dynamic background colors
-  const getBg = (light, dark) => (colorScheme === 'dark' ? dark : light);
-  const getTextColor = (light, dark) => (colorScheme === 'dark' ? dark : light);
+  const getBg = (light, dark) => (colorScheme === "dark" ? dark : light);
+  const getTextColor = (light, dark) => (colorScheme === "dark" ? dark : light);
 
   // Get user initials for avatar
   const getUserInitials = (firstName, lastName) => {
@@ -129,42 +129,50 @@ export default function HowItWorksPage() {
     {
       icon: <IconUserPlus2 size={20} />,
       question: "How many free registrations do I get?",
-      answer: "You get 1 free registration total (for either a person or vehicle). After that, you'll need to subscribe to a premium plan to continue reporting missing cases.",
+      answer:
+        "You get 1 free registration total (for either a person or vehicle). After that, you'll need to subscribe to a premium plan to continue reporting missing cases.",
     },
     {
       icon: <IconCamera size={20} />,
       question: "How do alerts work?",
-      answer: "Our camera system automatically detects missing persons/vehicles. When a match is found, you'll receive an alert in your dashboard. The alert stays active until you view and acknowledge it.",
+      answer:
+        "Our camera system automatically detects missing persons/vehicles. When a match is found, you'll receive an alert in your dashboard. The alert stays active until you view and acknowledge it.",
     },
     {
       icon: <IconStethoscope size={20} />,
       question: "What documents are needed for special cases?",
-      answer: "For mentally ill persons: valid doctor's report. For criminal background cases: official arrest warrant or court order. These are verified by our admin team.",
+      answer:
+        "For mentally ill persons: valid doctor's report. For criminal background cases: official arrest warrant or court order. These are verified by our admin team.",
     },
     {
       icon: <IconClock size={20} />,
       question: "How long do alerts stay active?",
-      answer: "Alerts remain active until you view them. The system operates 24/7, so you can receive alerts at any time.",
+      answer:
+        "Alerts remain active until you view them. The system operates 24/7, so you can receive alerts at any time.",
     },
     {
       icon: <IconBuildingBank size={20} />,
       question: "What payment methods are accepted?",
-      answer: "We accept Bank Transfer, Wallet payments, and Credit/Debit cards. All payments are secure and encrypted.",
+      answer:
+        "We accept Bank Transfer, Wallet payments, and Credit/Debit cards. All payments are secure and encrypted.",
     },
     {
       icon: <IconBrandTelegram size={20} />,
       question: "Will I get notifications via Telegram?",
-      answer: "Yes! You can connect your Telegram account for instant notifications when your case is detected.",
+      answer:
+        "Yes! You can connect your Telegram account for instant notifications when your case is detected.",
     },
     {
       icon: <IconUsers size={20} />,
       question: "Can police officers have special access?",
-      answer: "Yes, law enforcement officers can have priority access to certain cases. Contact our admin for verification.",
+      answer:
+        "Yes, law enforcement officers can have priority access to certain cases. Contact our admin for verification.",
     },
     {
       icon: <IconMessageCircle size={20} />,
       question: "Is the platform available in Amharic?",
-      answer: "We're working on Amharic language support! Currently the platform is in English, but Amharic is coming soon.",
+      answer:
+        "We're working on Amharic language support! Currently the platform is in English, but Amharic is coming soon.",
     },
   ];
 
@@ -174,7 +182,8 @@ export default function HowItWorksPage() {
       name: "Sara Johnson",
       role: "Found Car in 24 Hours",
       avatarColor: "blue",
-      content: "I found my car within 24 hours of posting here. The AI detection is incredible!",
+      content:
+        "I found my car within 24 hours of posting here. The AI detection is incredible!",
       rating: 5,
       date: "2 weeks ago",
     },
@@ -182,7 +191,8 @@ export default function HowItWorksPage() {
       name: "Kebede M.",
       role: "Found Missing Brother",
       avatarColor: "green",
-      content: "The alert system is so fast. Thank you for helping me find my brother.",
+      content:
+        "The alert system is so fast. Thank you for helping me find my brother.",
       rating: 5,
       date: "1 month ago",
     },
@@ -190,7 +200,8 @@ export default function HowItWorksPage() {
       name: "Tigist Haile",
       role: "Vehicle Owner",
       avatarColor: "orange",
-      content: "My car was stolen and within 3 days, Flega's system spotted it. The police were notified and I got my car back.",
+      content:
+        "My car was stolen and within 3 days, Flega's system spotted it. The police were notified and I got my car back.",
       rating: 5,
       date: "3 weeks ago",
     },
@@ -242,7 +253,10 @@ export default function HowItWorksPage() {
           top: 0,
           zIndex: 100,
           backdropFilter: "blur(10px)",
-          background: getBg("rgba(255,255,255,0.95)", `rgba(${theme.colors.dark[7]},0.95)`),
+          background: getBg(
+            "rgba(255,255,255,0.95)",
+            `rgba(${theme.colors.dark[7]},0.95)`,
+          ),
         }}
       >
         <Container size="xl">
@@ -263,8 +277,6 @@ export default function HowItWorksPage() {
               />
             </Link>
 
-            
-
             <TextInput
               placeholder="Search lost items, cars, or people..."
               leftSection={<IconSearch size={16} />}
@@ -280,8 +292,16 @@ export default function HowItWorksPage() {
 
             <Group gap={isMobile ? "xs" : "md"} wrap="nowrap">
               {/* Notification Bell */}
-              
-              <Button variant="subtle" component={Link} href="/about">
+
+              <Button
+                variant="subtle"
+                component={Link}
+                href="/user/about"
+                radius="xl"
+                style={{
+                  color: colorScheme === "dark" ? "#e0e0e0" : "#333333",
+                }}
+              >
                 About Us
               </Button>
               <ActionIcon
@@ -294,7 +314,7 @@ export default function HowItWorksPage() {
               >
                 <IconHome size={24} />
               </ActionIcon>
-              
+
               {user ? (
                 <Menu
                   shadow="md"
@@ -341,12 +361,19 @@ export default function HowItWorksPage() {
                   </Menu.Target>
                   <Menu.Dropdown
                     bg={getBg("white", theme.colors.dark[7])}
-                    style={{ borderColor: getBg(theme.colors.gray[2], theme.colors.dark[5]) }}
+                    style={{
+                      borderColor: getBg(
+                        theme.colors.gray[2],
+                        theme.colors.dark[5],
+                      ),
+                    }}
                   >
                     <Box
                       mb="md"
                       pb="md"
-                      style={{ borderBottom: `1px solid ${getBg(theme.colors.gray[2], theme.colors.dark[5])}` }}
+                      style={{
+                        borderBottom: `1px solid ${getBg(theme.colors.gray[2], theme.colors.dark[5])}`,
+                      }}
                     >
                       <Group mb="xs">
                         <Avatar
@@ -455,7 +482,8 @@ export default function HowItWorksPage() {
                     radius="xl"
                     size={isMobile ? "xs" : "sm"}
                     style={{
-                      background: "linear-gradient(135deg, #2f80ed 0%, #1e56a0 100%)",
+                      background:
+                        "linear-gradient(135deg, #2f80ed 0%, #1e56a0 100%)",
                     }}
                   >
                     {isMobile ? "Join" : "Sign Up"}
@@ -471,152 +499,294 @@ export default function HowItWorksPage() {
       <Container size="xl" py={40}>
         {/* Page Title */}
         <Box mb={40}>
-          <Badge size="lg" color="blue" variant="light" mb="md">GUIDE</Badge>
+          <Badge size="lg" color="blue" variant="light" mb="md">
+            GUIDE
+          </Badge>
           <Title order={1} fw={900} size={48} style={{ color: PRIMARY_COLOR }}>
             How Flega Works
           </Title>
           <Text c="dimmed" size="lg" mt={10} maw={600}>
-            A simple 4-step process to report and recover missing persons and vehicles
+            A simple 4-step process to report and recover missing persons and
+            vehicles
           </Text>
         </Box>
 
         {/* Stats Section */}
         <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} mb={50}>
-          <Paper p="xl" radius="md" withBorder style={{ textAlign: 'center' }}>
-            <ThemeIcon size={60} radius={60} mx="auto" mb="md" style={{ background: PRIMARY_GRADIENT }}>
+          <Paper p="xl" radius="md" withBorder style={{ textAlign: "center" }}>
+            <ThemeIcon
+              size={60}
+              radius={60}
+              mx="auto"
+              mb="md"
+              style={{ background: PRIMARY_GRADIENT }}
+            >
               <IconUsers size={30} color="white" />
             </ThemeIcon>
-            <Text fw={700} size="2rem" style={{ color: PRIMARY_COLOR }}>500+</Text>
+            <Text fw={700} size="2rem" style={{ color: PRIMARY_COLOR }}>
+              500+
+            </Text>
             <Text c="dimmed">Active Cases</Text>
           </Paper>
-          <Paper p="xl" radius="md" withBorder style={{ textAlign: 'center' }}>
-            <ThemeIcon size={60} radius={60} mx="auto" mb="md" style={{ background: PRIMARY_GRADIENT }}>
+          <Paper p="xl" radius="md" withBorder style={{ textAlign: "center" }}>
+            <ThemeIcon
+              size={60}
+              radius={60}
+              mx="auto"
+              mb="md"
+              style={{ background: PRIMARY_GRADIENT }}
+            >
               <IconHeartHandshake size={30} color="white" />
             </ThemeIcon>
-            <Text fw={700} size="2rem" style={{ color: PRIMARY_COLOR }}>150+</Text>
+            <Text fw={700} size="2rem" style={{ color: PRIMARY_COLOR }}>
+              150+
+            </Text>
             <Text c="dimmed">Successful Reunions</Text>
           </Paper>
-          <Paper p="xl" radius="md" withBorder style={{ textAlign: 'center' }}>
-            <ThemeIcon size={60} radius={60} mx="auto" mb="md" style={{ background: PRIMARY_GRADIENT }}>
+          <Paper p="xl" radius="md" withBorder style={{ textAlign: "center" }}>
+            <ThemeIcon
+              size={60}
+              radius={60}
+              mx="auto"
+              mb="md"
+              style={{ background: PRIMARY_GRADIENT }}
+            >
               <IconCamera size={30} color="white" />
             </ThemeIcon>
-            <Text fw={700} size="2rem" style={{ color: PRIMARY_COLOR }}>24/7</Text>
+            <Text fw={700} size="2rem" style={{ color: PRIMARY_COLOR }}>
+              24/7
+            </Text>
             <Text c="dimmed">Camera Monitoring</Text>
           </Paper>
-          <Paper p="xl" radius="md" withBorder style={{ textAlign: 'center' }}>
-            <ThemeIcon size={60} radius={60} mx="auto" mb="md" style={{ background: PRIMARY_GRADIENT }}>
+          <Paper
+            p="xl"
+            radius="md"
+            withBorder
+            bg={getBg("white", theme.colors.dark[6])}
+            style={{ textAlign: "center" }}
+          >
+            <ThemeIcon
+              size={60}
+              radius={60}
+              mx="auto"
+              mb="md"
+              style={{ background: PRIMARY_GRADIENT }}
+            >
               <IconClock size={30} color="white" />
             </ThemeIcon>
-            <Text fw={700} size="2rem" style={{ color: PRIMARY_COLOR }}>24 hrs</Text>
+            <Text fw={700} size="2rem" style={{ color: PRIMARY_COLOR }}>
+              24 hrs
+            </Text>
             <Text c="dimmed">System Active</Text>
           </Paper>
         </SimpleGrid>
 
         {/* 4-Step Guide */}
-        <Title order={2} fw={800} ta="center" mb={10}>Simple 4-Step Process</Title>
+        <Title order={2} fw={800} ta="center" mb={10}>
+          Simple 4-Step Process
+        </Title>
         <Text c="dimmed" ta="center" mb={50} maw={600} mx="auto">
           Four simple steps to find what you've lost or report what you've found
         </Text>
 
         <Grid gutter={30} mb={50}>
           <Grid.Col span={{ base: 12, md: 3 }}>
-            <Card withBorder radius="lg" p="xl" style={{ height: '100%' }}>
-              <ThemeIcon size={50} radius={50} mb="md" style={{ background: PRIMARY_GRADIENT }}>
-                <Text fw={900} size="xl">1</Text>
+            <Card withBorder radius="lg" p="xl" style={{ height: "100%" }}>
+              <ThemeIcon
+                size={50}
+                radius={50}
+                mb="md"
+                style={{ background: PRIMARY_GRADIENT }}
+              >
+                <Text fw={900} size="xl">
+                  1
+                </Text>
               </ThemeIcon>
-              <Title order={4} mb="sm">Create Account</Title>
+              <Title order={4} mb="sm">
+                Create Account
+              </Title>
               <Text c="dimmed" size="sm">
-                Register for free. First registration is always free! No hidden fees.
+                Register for free. First registration is always free! No hidden
+                fees.
               </Text>
             </Card>
           </Grid.Col>
           <Grid.Col span={{ base: 12, md: 3 }}>
-            <Card withBorder radius="lg" p="xl" style={{ height: '100%' }}>
-              <ThemeIcon size={50} radius={50} mb="md" style={{ background: PRIMARY_GRADIENT }}>
-                <Text fw={900} size="xl">2</Text>
+            <Card withBorder radius="lg" p="xl" style={{ height: "100%" }}>
+              <ThemeIcon
+                size={50}
+                radius={50}
+                mb="md"
+                style={{ background: PRIMARY_GRADIENT }}
+              >
+                <Text fw={900} size="xl">
+                  2
+                </Text>
               </ThemeIcon>
-              <Title order={4} mb="sm">Report Case</Title>
+              <Title order={4} mb="sm">
+                Report Case
+              </Title>
               <Text c="dimmed" size="sm">
-                Choose between Person, Vehicle, or Special Case. Upload photos and details.
+                Choose between Person, Vehicle, or Special Case. Upload photos
+                and details.
               </Text>
             </Card>
           </Grid.Col>
           <Grid.Col span={{ base: 12, md: 3 }}>
-            <Card withBorder radius="lg" p="xl" style={{ height: '100%' }}>
-              <ThemeIcon size={50} radius={50} mb="md" style={{ background: PRIMARY_GRADIENT }}>
-                <Text fw={900} size="xl">3</Text>
+            <Card withBorder radius="lg" p="xl" style={{ height: "100%" }}>
+              <ThemeIcon
+                size={50}
+                radius={50}
+                mb="md"
+                style={{ background: PRIMARY_GRADIENT }}
+              >
+                <Text fw={900} size="xl">
+                  3
+                </Text>
               </ThemeIcon>
-              <Title order={4} mb="sm">Camera Detection</Title>
+              <Title order={4} mb="sm">
+                Camera Detection
+              </Title>
               <Text c="dimmed" size="sm">
-                Our 24/7 camera system scans for matches. When detected, you get instant alerts.
+                Our 24/7 camera system scans for matches. When detected, you get
+                instant alerts.
               </Text>
             </Card>
           </Grid.Col>
           <Grid.Col span={{ base: 12, md: 3 }}>
-            <Card withBorder radius="lg" p="xl" style={{ height: '100%' }}>
-              <ThemeIcon size={50} radius={50} mb="md" style={{ background: PRIMARY_GRADIENT }}>
-                <Text fw={900} size="xl">4</Text>
+            <Card withBorder radius="lg" p="xl" style={{ height: "100%" }}>
+              <ThemeIcon
+                size={50}
+                radius={50}
+                mb="md"
+                style={{ background: PRIMARY_GRADIENT }}
+              >
+                <Text fw={900} size="xl">
+                  4
+                </Text>
               </ThemeIcon>
-              <Title order={4} mb="sm">Get Alerted</Title>
+              <Title order={4} mb="sm">
+                Get Alerted
+              </Title>
               <Text c="dimmed" size="sm">
-                Receive notifications via email, SMS, or Telegram. Case resolved!
+                Receive notifications via email, SMS, or Telegram. Case
+                resolved!
               </Text>
             </Card>
           </Grid.Col>
         </Grid>
 
         {/* Case Types */}
-        <Title order={2} fw={800} ta="center" mb={10}>What Can You Report?</Title>
+        <Title order={2} fw={800} ta="center" mb={10}>
+          What Can You Report?
+        </Title>
         <Text c="dimmed" ta="center" mb={50} maw={600} mx="auto">
           Three types of cases you can register in our system
         </Text>
 
         <SimpleGrid cols={{ base: 1, md: 3 }} spacing={30} mb={50}>
           <Card withBorder radius="lg" p="xl">
-            <ThemeIcon size={60} radius={60} mx="auto" mb="md" style={{ background: PRIMARY_GRADIENT }}>
+            <ThemeIcon
+              size={60}
+              radius={60}
+              mx="auto"
+              mb="md"
+              style={{ background: PRIMARY_GRADIENT }}
+            >
               <IconUserPlus2 size={30} color="white" />
             </ThemeIcon>
-            <Title order={3} ta="center" mb="sm">Missing Person</Title>
+            <Title order={3} ta="center" mb="sm">
+              Missing Person
+            </Title>
             <Text c="dimmed" ta="center" size="sm" mb="md">
-              Report a missing family member or individual. Include photos, description, and last seen location.
+              Report a missing family member or individual. Include photos,
+              description, and last seen location.
             </Text>
             <List spacing="xs" size="sm" center>
-              <List.Item icon={<IconCheck size={16} color={PRIMARY_COLOR} />}>Full name and age</List.Item>
-              <List.Item icon={<IconCheck size={16} color={PRIMARY_COLOR} />}>Physical description</List.Item>
-              <List.Item icon={<IconCheck size={16} color={PRIMARY_COLOR} />}>Last known location</List.Item>
-              <List.Item icon={<IconCheck size={16} color={PRIMARY_COLOR} />}>Recent photos</List.Item>
+              <List.Item icon={<IconCheck size={16} color={PRIMARY_COLOR} />}>
+                Full name and age
+              </List.Item>
+              <List.Item icon={<IconCheck size={16} color={PRIMARY_COLOR} />}>
+                Physical description
+              </List.Item>
+              <List.Item icon={<IconCheck size={16} color={PRIMARY_COLOR} />}>
+                Last known location
+              </List.Item>
+              <List.Item icon={<IconCheck size={16} color={PRIMARY_COLOR} />}>
+                Recent photos
+              </List.Item>
             </List>
           </Card>
 
           <Card withBorder radius="lg" p="xl">
-            <ThemeIcon size={60} radius={60} mx="auto" mb="md" style={{ background: PRIMARY_GRADIENT }}>
+            <ThemeIcon
+              size={60}
+              radius={60}
+              mx="auto"
+              mb="md"
+              style={{ background: PRIMARY_GRADIENT }}
+            >
               <IconCar size={30} color="white" />
             </ThemeIcon>
-            <Title order={3} ta="center" mb="sm">Missing Vehicle</Title>
+            <Title order={3} ta="center" mb="sm">
+              Missing Vehicle
+            </Title>
             <Text c="dimmed" ta="center" size="sm" mb="md">
-              Report stolen or missing vehicles. Include license plate, model, and identifying features.
+              Report stolen or missing vehicles. Include license plate, model,
+              and identifying features.
             </Text>
             <List spacing="xs" size="sm" center>
-              <List.Item icon={<IconCheck size={16} color={PRIMARY_COLOR} />}>Brand and model</List.Item>
-              <List.Item icon={<IconCheck size={16} color={PRIMARY_COLOR} />}>License plate number</List.Item>
-              <List.Item icon={<IconCheck size={16} color={PRIMARY_COLOR} />}>Color and features</List.Item>
-              <List.Item icon={<IconCheck size={16} color={PRIMARY_COLOR} />}>Vehicle images</List.Item>
+              <List.Item icon={<IconCheck size={16} color={PRIMARY_COLOR} />}>
+                Brand and model
+              </List.Item>
+              <List.Item icon={<IconCheck size={16} color={PRIMARY_COLOR} />}>
+                License plate number
+              </List.Item>
+              <List.Item icon={<IconCheck size={16} color={PRIMARY_COLOR} />}>
+                Color and features
+              </List.Item>
+              <List.Item icon={<IconCheck size={16} color={PRIMARY_COLOR} />}>
+                Vehicle images
+              </List.Item>
             </List>
           </Card>
 
           <Card withBorder radius="lg" p="xl">
-            <ThemeIcon size={60} radius={60} mx="auto" mb="md" style={{ background: PRIMARY_GRADIENT }}>
+            <ThemeIcon
+              size={60}
+              radius={60}
+              mx="auto"
+              mb="md"
+              style={{ background: PRIMARY_GRADIENT }}
+            >
               <IconAlertTriangle size={30} color="white" />
             </ThemeIcon>
-            <Title order={3} ta="center" mb="sm">Special Cases</Title>
+            <Title order={3} ta="center" mb="sm">
+              Special Cases
+            </Title>
             <Text c="dimmed" ta="center" size="sm" mb="md">
-              Report mentally ill persons or criminal background cases. Requires official documentation.
+              Report mentally ill persons or criminal background cases. Requires
+              official documentation.
             </Text>
             <List spacing="xs" size="sm" center>
-              <List.Item icon={<IconStethoscope size={16} color={PRIMARY_COLOR} />}>Doctor's report (mentally ill)</List.Item>
-              <List.Item icon={<IconScale size={16} color={PRIMARY_COLOR} />}>Court order/arrest warrant</List.Item>
-              <List.Item icon={<IconShieldCheck size={16} color={PRIMARY_COLOR} />}>Admin verification</List.Item>
-              <List.Item icon={<IconFileDescription size={16} color={PRIMARY_COLOR} />}>Official documents</List.Item>
+              <List.Item
+                icon={<IconStethoscope size={16} color={PRIMARY_COLOR} />}
+              >
+                Doctor's report (mentally ill)
+              </List.Item>
+              <List.Item icon={<IconScale size={16} color={PRIMARY_COLOR} />}>
+                Court order/arrest warrant
+              </List.Item>
+              <List.Item
+                icon={<IconShieldCheck size={16} color={PRIMARY_COLOR} />}
+              >
+                Admin verification
+              </List.Item>
+              <List.Item
+                icon={<IconFileDescription size={16} color={PRIMARY_COLOR} />}
+              >
+                Official documents
+              </List.Item>
             </List>
           </Card>
         </SimpleGrid>
@@ -624,46 +794,102 @@ export default function HowItWorksPage() {
         {/* Pricing Section */}
         <Box py={20} mb={30}>
           <Paper bg={getBg("blue.0", "blue.9")} p={40} radius="lg">
-            <Title order={2} mb="xl" style={{ color: PRIMARY_COLOR }}>Simple, Transparent Pricing</Title>
-            <Text size="lg" mb="xl" maw={500}>First registration is FREE. After that, choose a plan that works for you.</Text>
-            
+            <Title order={2} mb="xl" style={{ color: PRIMARY_COLOR }}>
+              Simple, Transparent Pricing
+            </Title>
+            <Text size="lg" mb="xl" maw={500}>
+              First registration is FREE. After that, choose a plan that works
+              for you.
+            </Text>
+
             <SimpleGrid cols={{ base: 1, md: 2 }} spacing={30}>
-              <Card withBorder radius="lg" p="xl" bg="white">
-                <Badge color="blue" size="lg" mb="md">FREE</Badge>
-                <Title order={3} mb="sm">First Registration</Title>
-                <Text size="sm" c="dimmed" mb="md">Perfect for one-time reports</Text>
+              <Card
+                withBorder
+                radius="lg"
+                p="xl"
+                bg={getBg("white", theme.colors.dark[6])}
+              >
+                {" "}
+                {/* ✅ FIXED */}
+                <Badge color="blue" size="lg" mb="md">
+                  FREE
+                </Badge>
+                <Title order={3} mb="sm">
+                  First Registration
+                </Title>
+                <Text size="sm" c="dimmed" mb="md">
+                  Perfect for one-time reports
+                </Text>
                 <List spacing="xs" size="sm">
-                  <List.Item icon={<IconCheck size={16} color="green" />}>1 free report (person or vehicle)</List.Item>
-                  <List.Item icon={<IconCheck size={16} color="green" />}>Full camera detection</List.Item>
-                  <List.Item icon={<IconCheck size={16} color="green" />}>Email notifications</List.Item>
-                  <List.Item icon={<IconCheck size={16} color="green" />}>Alert dashboard access</List.Item>
+                  <List.Item icon={<IconCheck size={16} color="green" />}>
+                    1 free report (person or vehicle)
+                  </List.Item>
+                  <List.Item icon={<IconCheck size={16} color="green" />}>
+                    Full camera detection
+                  </List.Item>
+                  <List.Item icon={<IconCheck size={16} color="green" />}>
+                    Email notifications
+                  </List.Item>
+                  <List.Item icon={<IconCheck size={16} color="green" />}>
+                    Alert dashboard access
+                  </List.Item>
                 </List>
-                <Button 
-                  fullWidth 
-                  mt="xl" 
-                  variant="outline" 
-                  color="blue" 
-                  onClick={() => router.push(user ? '/register-person' : '/signup')}
+                <Button
+                  fullWidth
+                  mt="xl"
+                  variant="outline"
+                  color="blue"
+                  onClick={() =>
+                    router.push(user ? "/register-person" : "/signup")
+                  }
                 >
-                  {user ? 'Start Free Report' : 'Sign Up Free'}
+                  {user ? "Start Free Report" : "Sign Up Free"}
                 </Button>
               </Card>
 
-              <Card withBorder radius="lg" p="xl" bg="white">
-                <Badge color="green" size="lg" mb="md">PREMIUM</Badge>
-                <Title order={3} mb="sm">Unlimited Reports</Title>
-                <Text size="sm" c="dimmed" mb="md">Starting at 360 birr/month</Text>
+              <Card
+                withBorder
+                radius="lg"
+                p="xl"
+                bg={getBg("white", theme.colors.dark[6])}
+              >
+                {" "}
+                {/* ✅ FIXED */}
+                <Badge color="green" size="lg" mb="md">
+                  PREMIUM
+                </Badge>
+                <Title order={3} mb="sm">
+                  Unlimited Reports
+                </Title>
+                <Text size="sm" c="dimmed" mb="md">
+                  Starting at 360 birr/month
+                </Text>
                 <List spacing="xs" size="sm">
-                  <List.Item icon={<IconCheck size={16} color="green" />}>Unlimited reports</List.Item>
-                  <List.Item icon={<IconCheck size={16} color="green" />}>Priority camera detection</List.Item>
-                  <List.Item icon={<IconCheck size={16} color="green" />}>SMS & Telegram alerts</List.Item>
-                  <List.Item icon={<IconCheck size={16} color="green" />}>24/7 support</List.Item>
+                  <List.Item icon={<IconCheck size={16} color="green" />}>
+                    Unlimited reports
+                  </List.Item>
+                  <List.Item icon={<IconCheck size={16} color="green" />}>
+                    Priority camera detection
+                  </List.Item>
+                  <List.Item icon={<IconCheck size={16} color="green" />}>
+                    SMS & Telegram alerts
+                  </List.Item>
+                  <List.Item icon={<IconCheck size={16} color="green" />}>
+                    24/7 support
+                  </List.Item>
                 </List>
                 <Group grow mt="xl">
-                  <Button color="green" onClick={() => router.push('/subscribe?plan=monthly')}>
+                  <Button
+                    color="green"
+                    onClick={() => router.push("/subscribe?plan=monthly")}
+                  >
                     Monthly 400 birr
                   </Button>
-                  <Button color="green" variant="outline" onClick={() => router.push('/subscribe?plan=annual')}>
+                  <Button
+                    color="green"
+                    variant="outline"
+                    onClick={() => router.push("/subscribe?plan=annual")}
+                  >
                     Annual 360/mo
                   </Button>
                 </Group>
@@ -674,22 +900,32 @@ export default function HowItWorksPage() {
               <IconBuildingBank size={16} color={PRIMARY_COLOR} />
               <IconWallet size={16} color={PRIMARY_COLOR} />
               <IconCreditCard size={16} color={PRIMARY_COLOR} />
-              <Text size="sm" c="dimmed">All payment methods accepted</Text>
+              <Text size="sm" c="dimmed">
+                All payment methods accepted
+              </Text>
             </Group>
           </Paper>
         </Box>
 
         {/* FAQ Section */}
         <Box py={40}>
-          <Title order={2} fw={800} ta="center" mb={10}>Frequently Asked Questions</Title>
-          <Text c="dimmed" ta="center" mb={40} maw={600} mx="auto">Got questions? We've got answers</Text>
+          <Title order={2} fw={800} ta="center" mb={10}>
+            Frequently Asked Questions
+          </Title>
+          <Text c="dimmed" ta="center" mb={40} maw={600} mx="auto">
+            Got questions? We've got answers
+          </Text>
 
           <Accordion variant="separated" radius="lg" maw={800} mx="auto">
             {faqData.map((faq, index) => (
               <Accordion.Item key={index} value={`faq-${index}`}>
                 <Accordion.Control>
                   <Group gap="sm">
-                    <ThemeIcon size={30} radius={30} style={{ background: PRIMARY_GRADIENT }}>
+                    <ThemeIcon
+                      size={30}
+                      radius={30}
+                      style={{ background: PRIMARY_GRADIENT }}
+                    >
                       {faq.icon}
                     </ThemeIcon>
                     <Text fw={600}>{faq.question}</Text>
@@ -707,11 +943,18 @@ export default function HowItWorksPage() {
 
         {/* Testimonials */}
         <Box py={40}>
-          <Title order={2} fw={800} mb={5} ta="center" style={{ color: PRIMARY_COLOR }}>
+          <Title
+            order={2}
+            fw={800}
+            mb={5}
+            ta="center"
+            style={{ color: PRIMARY_COLOR }}
+          >
             Real Stories, Real Results
           </Title>
           <Text size="sm" c="dimmed" mb={40} maw={600} mx="auto" ta="center">
-            Hear from families and individuals who have successfully recovered their loved ones and vehicles
+            Hear from families and individuals who have successfully recovered
+            their loved ones and vehicles
           </Text>
 
           <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg">
@@ -722,15 +965,26 @@ export default function HowItWorksPage() {
                     <IconStarFilled key={i} size={16} color="#FAB005" />
                   ))}
                 </Group>
-                <Text size="sm" mb="md" style={{ lineHeight: 1.6 }}>"{testimonial.content}"</Text>
+                <Text size="sm" mb="md" style={{ lineHeight: 1.6 }}>
+                  "{testimonial.content}"
+                </Text>
                 <Group gap="sm">
                   <Avatar size="md" color={testimonial.avatarColor} radius="xl">
-                    {testimonial.name.split(" ").map(n => n[0]).join("")}
+                    {testimonial.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")}
                   </Avatar>
                   <Box>
-                    <Text size="sm" fw={700}>{testimonial.name}</Text>
-                    <Text size="xs" c="dimmed">{testimonial.role}</Text>
-                    <Text size="xs" c="dimmed">{testimonial.date}</Text>
+                    <Text size="sm" fw={700}>
+                      {testimonial.name}
+                    </Text>
+                    <Text size="xs" c="dimmed">
+                      {testimonial.role}
+                    </Text>
+                    <Text size="xs" c="dimmed">
+                      {testimonial.date}
+                    </Text>
                   </Box>
                 </Group>
               </Paper>
@@ -745,45 +999,56 @@ export default function HowItWorksPage() {
             radius="lg"
             style={{
               background: PRIMARY_GRADIENT,
-              textAlign: 'center',
+              textAlign: "center",
             }}
           >
-            <Title order={2} c="white" mb="md">Ready to Get Started?</Title>
+            <Title order={2} c="white" mb="md">
+              Ready to Get Started?
+            </Title>
             <Text c="white" opacity={0.9} mb="xl" maw={500} mx="auto">
-              Join hundreds of families who have found their loved ones and vehicles with Flega
+              Join hundreds of families who have found their loved ones and
+              vehicles with Flega
             </Text>
             <Group justify="center">
-              <Button 
-                size="xl" 
-                color="white" 
-                radius="xl" 
-                onClick={() => router.push(user ? '/register-person' : '/signup')}
+              <Button
+                size="xl"
+                color="white"
+                radius="xl"
+                onClick={() =>
+                  router.push(user ? "/register-person" : "/signup")
+                }
               >
-                {user ? 'Report a Case' : 'Sign Up Free'}
+                {user ? "Report a Case" : "Sign Up Free"}
               </Button>
-              <Button 
-                size="xl" 
-                color="white" 
-                radius="xl" 
-                onClick={() => router.push(user ? '/report-sighting' : '/signup')}
+              <Button
+                size="xl"
+                color="white"
+                radius="xl"
+                onClick={() =>
+                  router.push(user ? "/report-sighting" : "/signup")
+                }
                 variant="outline"
                 style={{ marginLeft: 10 }}
               >
-                {user ? 'Report a Sighting' : 'Sign Up First'}
+                {user ? "Report a Sighting" : "Sign Up First"}
               </Button>
-              <Button 
-                size="xl" 
-                variant="outline" 
-                color="white" 
-                radius="xl" 
-                onClick={() => router.push('/alert')}
+              <Button
+                size="xl"
+                variant="outline"
+                color="white"
+                radius="xl"
+                onClick={() => router.push("/alert")}
               >
                 View Active Alerts
               </Button>
             </Group>
             <Text size="sm" c="white" opacity={0.8} mt="xl">
-              <IconLock size={14} style={{ display: 'inline', marginRight: 5 }} />
-              Your data is encrypted and secure. First registration is always free.
+              <IconLock
+                size={14}
+                style={{ display: "inline", marginRight: 5 }}
+              />
+              Your data is encrypted and secure. First registration is always
+              free.
             </Text>
           </Paper>
         </Box>

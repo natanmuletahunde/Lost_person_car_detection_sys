@@ -52,8 +52,10 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // Helper to get dynamic background/color values
-const getBg = (colorScheme, light, dark) => (colorScheme === "dark" ? dark : light);
-const getTextColor = (colorScheme, light, dark) => (colorScheme === "dark" ? dark : light);
+const getBg = (colorScheme, light, dark) =>
+  colorScheme === "dark" ? dark : light;
+const getTextColor = (colorScheme, light, dark) =>
+  colorScheme === "dark" ? dark : light;
 
 export default function PaymentPage() {
   const router = useRouter();
@@ -70,7 +72,7 @@ export default function PaymentPage() {
   const [activeStep, setActiveStep] = useState(1);
 
   // Get plan from URL
-  const planType = searchParams.get("type") || "annual";
+  const planType = searchParams.get("plan") || "annual";
   const [selectedPlan, setSelectedPlan] = useState(planType);
 
   // Payment method state
@@ -216,7 +218,7 @@ export default function PaymentPage() {
         background: getBg(
           colorScheme,
           "linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)",
-          `linear-gradient(135deg, ${theme.colors.dark[5]} 0%, ${theme.colors.dark[7]} 100%)`
+          `linear-gradient(135deg, ${theme.colors.dark[5]} 0%, ${theme.colors.dark[7]} 100%)`,
         ),
         borderRadius: "12px",
         padding: "24px",
@@ -246,7 +248,9 @@ export default function PaymentPage() {
                   fontWeight: "bold",
                   fontSize: "16px",
                   boxShadow:
-                    step <= activeStep ? "0 4px 12px rgba(79, 70, 229, 0.3)" : "none",
+                    step <= activeStep
+                      ? "0 4px 12px rgba(79, 70, 229, 0.3)"
+                      : "none",
                   transition: "all 0.3s ease",
                   zIndex: 2,
                   position: "relative",
@@ -266,7 +270,11 @@ export default function PaymentPage() {
               }
               size="sm"
             >
-              {step === 1 ? "Payment Details" : step === 2 ? "Review" : "Confirm"}
+              {step === 1
+                ? "Payment Details"
+                : step === 2
+                  ? "Review"
+                  : "Confirm"}
             </Text>
             {step < 3 && (
               <Box
@@ -305,7 +313,8 @@ export default function PaymentPage() {
                   style={{
                     padding: "12px",
                     borderRadius: "12px",
-                    background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+                    background:
+                      "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
                     color: "white",
                   }}
                 >
@@ -315,7 +324,8 @@ export default function PaymentPage() {
                   order={2}
                   fw={900}
                   style={{
-                    background: "linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%)",
+                    background:
+                      "linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%)",
                     WebkitBackgroundClip: "text",
                     WebkitTextFillColor: "transparent",
                   }}
@@ -328,14 +338,20 @@ export default function PaymentPage() {
               </Text>
             </Box>
 
-            <Divider color={getBg(colorScheme, theme.colors.gray[2], theme.colors.dark[5])} />
+            <Divider
+              color={getBg(
+                colorScheme,
+                theme.colors.gray[2],
+                theme.colors.dark[5],
+              )}
+            />
 
             <Card
               style={{
                 background: getBg(
                   colorScheme,
                   "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)",
-                  `linear-gradient(135deg, ${theme.colors.dark[7]} 0%, ${theme.colors.dark[6]} 100%)`
+                  `linear-gradient(135deg, ${theme.colors.dark[7]} 0%, ${theme.colors.dark[6]} 100%)`,
                 ),
                 border: "none",
                 borderRadius: "20px",
@@ -348,7 +364,8 @@ export default function PaymentPage() {
                   fw={700}
                   size="xl"
                   style={{
-                    background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+                    background:
+                      "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
                     WebkitBackgroundClip: "text",
                     WebkitTextFillColor: "transparent",
                   }}
@@ -378,7 +395,13 @@ export default function PaymentPage() {
 
                 {paymentMethod === "bank" && selectedBank && (
                   <>
-                    <Divider color={getBg(colorScheme, theme.colors.gray[2], theme.colors.dark[5])} />
+                    <Divider
+                      color={getBg(
+                        colorScheme,
+                        theme.colors.gray[2],
+                        theme.colors.dark[5],
+                      )}
+                    />
                     <Box>
                       <Text size="sm" c="dimmed">
                         Chosen Bank
@@ -395,7 +418,9 @@ export default function PaymentPage() {
                         Account Number
                       </Text>
                       <Text fw={600} size="lg" mt={4}>
-                        {accountNumber ? `${accountNumber.slice(0, 4)}xxxxxxxxxx` : "Not provided"}
+                        {accountNumber
+                          ? `${accountNumber.slice(0, 4)}xxxxxxxxxx`
+                          : "Not provided"}
                       </Text>
                     </Box>
                   </>
@@ -403,7 +428,13 @@ export default function PaymentPage() {
 
                 {paymentMethod === "creditCard" && (
                   <>
-                    <Divider color={getBg(colorScheme, theme.colors.gray[2], theme.colors.dark[5])} />
+                    <Divider
+                      color={getBg(
+                        colorScheme,
+                        theme.colors.gray[2],
+                        theme.colors.dark[5],
+                      )}
+                    />
                     <Box>
                       <Text size="sm" c="dimmed">
                         Card Type
@@ -420,7 +451,9 @@ export default function PaymentPage() {
                         Card Number
                       </Text>
                       <Text fw={600} size="lg" mt={4}>
-                        {cardNumber ? `**** ${cardNumber.slice(-4)}` : "Not provided"}
+                        {cardNumber
+                          ? `**** ${cardNumber.slice(-4)}`
+                          : "Not provided"}
                       </Text>
                     </Box>
                   </>
@@ -428,7 +461,13 @@ export default function PaymentPage() {
 
                 {paymentMethod === "wallet" && (
                   <>
-                    <Divider color={getBg(colorScheme, theme.colors.gray[2], theme.colors.dark[5])} />
+                    <Divider
+                      color={getBg(
+                        colorScheme,
+                        theme.colors.gray[2],
+                        theme.colors.dark[5],
+                      )}
+                    />
                     <Box>
                       <Text size="sm" c="dimmed">
                         Wallet Type
@@ -445,13 +484,21 @@ export default function PaymentPage() {
                         Wallet ID
                       </Text>
                       <Text fw={600} size="lg" mt={4}>
-                        {walletId ? `${walletId.slice(0, 4)}...${walletId.slice(-4)}` : "Not provided"}
+                        {walletId
+                          ? `${walletId.slice(0, 4)}...${walletId.slice(-4)}`
+                          : "Not provided"}
                       </Text>
                     </Box>
                   </>
                 )}
 
-                <Divider color={getBg(colorScheme, theme.colors.gray[2], theme.colors.dark[5])} />
+                <Divider
+                  color={getBg(
+                    colorScheme,
+                    theme.colors.gray[2],
+                    theme.colors.dark[5],
+                  )}
+                />
 
                 <Box>
                   <Text size="sm" c="dimmed">
@@ -461,7 +508,8 @@ export default function PaymentPage() {
                     order={1}
                     fw={900}
                     style={{
-                      background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+                      background:
+                        "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
                       WebkitBackgroundClip: "text",
                       WebkitTextFillColor: "transparent",
                     }}
@@ -496,7 +544,8 @@ export default function PaymentPage() {
                 onClick={handleConfirmPayment}
                 leftSection={<IconCheck size={20} />}
                 style={{
-                  background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                  background:
+                    "linear-gradient(135deg, #10b981 0%, #059669 100%)",
                   transition: "all 0.3s ease",
                   "&:hover": {
                     transform: "translateY(-2px)",
@@ -513,7 +562,7 @@ export default function PaymentPage() {
                 background: getBg(
                   colorScheme,
                   "linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)",
-                  `linear-gradient(135deg, ${theme.colors.blue[9]} 0%, ${theme.colors.blue[8]} 100%)`
+                  `linear-gradient(135deg, ${theme.colors.blue[9]} 0%, ${theme.colors.blue[8]} 100%)`,
                 ),
                 border: "none",
                 borderRadius: "12px",
@@ -521,7 +570,8 @@ export default function PaymentPage() {
               icon={<IconShieldCheck size={20} color="#3b82f6" />}
             >
               <Text size="sm">
-                Your payment is secured with 256-bit SSL encryption. All data is protected.
+                Your payment is secured with 256-bit SSL encryption. All data is
+                protected.
               </Text>
             </Alert>
           </Stack>
@@ -553,7 +603,13 @@ export default function PaymentPage() {
             </Text>
           </Box>
 
-          <Divider color={getBg(colorScheme, theme.colors.gray[2], theme.colors.dark[5])} />
+          <Divider
+            color={getBg(
+              colorScheme,
+              theme.colors.gray[2],
+              theme.colors.dark[5],
+            )}
+          />
 
           <Box>
             <Text fw={600} size="md" mb={4}>
@@ -570,7 +626,11 @@ export default function PaymentPage() {
               styles={{
                 input: {
                   border: `2px solid ${getBg(colorScheme, "#e5e7eb", theme.colors.dark[5])}`,
-                  backgroundColor: getBg(colorScheme, "white", theme.colors.dark[6]),
+                  backgroundColor: getBg(
+                    colorScheme,
+                    "white",
+                    theme.colors.dark[6],
+                  ),
                   color: getBg(colorScheme, "black", theme.colors.gray[3]),
                   transition: "all 0.3s ease",
                   "&:focus": {
@@ -589,9 +649,24 @@ export default function PaymentPage() {
             <RadioGroup value={paymentMethod} onChange={setPaymentMethod}>
               <Group gap="md" mb="md" wrap="nowrap">
                 {[
-                  { value: "bank", label: "Bank", icon: IconBuildingBank, color: "#3b82f6" },
-                  { value: "wallet", label: "Wallet", icon: IconWallet, color: "#10b981" },
-                  { value: "creditCard", label: "Card", icon: IconCreditCard, color: "#8b5cf6" },
+                  {
+                    value: "bank",
+                    label: "Bank",
+                    icon: IconBuildingBank,
+                    color: "#3b82f6",
+                  },
+                  {
+                    value: "wallet",
+                    label: "Wallet",
+                    icon: IconWallet,
+                    color: "#10b981",
+                  },
+                  {
+                    value: "creditCard",
+                    label: "Card",
+                    icon: IconCreditCard,
+                    color: "#8b5cf6",
+                  },
                 ].map((method) => {
                   const IconComponent = method.icon;
                   return (
@@ -606,19 +681,25 @@ export default function PaymentPage() {
                         borderColor:
                           paymentMethod === method.value
                             ? method.color
-                            : getBg(colorScheme, "#e5e7eb", theme.colors.dark[5]),
+                            : getBg(
+                                colorScheme,
+                                "#e5e7eb",
+                                theme.colors.dark[5],
+                              ),
                         backgroundColor:
                           paymentMethod === method.value
                             ? getBg(
                                 colorScheme,
                                 `${method.color}15`,
-                                theme.colors.dark[6]
+                                theme.colors.dark[6],
                               )
                             : getBg(colorScheme, "white", theme.colors.dark[7]),
                         flex: 1,
                         transition: "all 0.3s ease",
                         transform:
-                          paymentMethod === method.value ? "translateY(-4px)" : "none",
+                          paymentMethod === method.value
+                            ? "translateY(-4px)"
+                            : "none",
                         boxShadow:
                           paymentMethod === method.value
                             ? `0 8px 20px ${method.color}30`
@@ -633,7 +714,11 @@ export default function PaymentPage() {
                           color={
                             paymentMethod === method.value
                               ? method.color
-                              : getBg(colorScheme, "#9ca3af", theme.colors.dark[3])
+                              : getBg(
+                                  colorScheme,
+                                  "#9ca3af",
+                                  theme.colors.dark[3],
+                                )
                           }
                         />
                         <Text fw={500}>{method.label}</Text>
@@ -717,7 +802,11 @@ export default function PaymentPage() {
                   boxShadow: "0 8px 20px rgba(59, 130, 246, 0.3)",
                 },
                 "&:disabled": {
-                  background: getBg(colorScheme, "#e5e7eb", theme.colors.dark[5]),
+                  background: getBg(
+                    colorScheme,
+                    "#e5e7eb",
+                    theme.colors.dark[5],
+                  ),
                   transform: "none",
                   boxShadow: "none",
                 },
@@ -737,7 +826,7 @@ export default function PaymentPage() {
               background: getBg(
                 colorScheme,
                 "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)",
-                `linear-gradient(135deg, ${theme.colors.yellow[9]} 0%, ${theme.colors.yellow[8]} 100%)`
+                `linear-gradient(135deg, ${theme.colors.yellow[9]} 0%, ${theme.colors.yellow[8]} 100%)`,
               ),
               border: "none",
             }}
@@ -745,8 +834,8 @@ export default function PaymentPage() {
             <Checkbox
               label={
                 <Text size="sm">
-                  By providing your payment information, you allow us to charge for future payments
-                  in accordance with our terms.
+                  By providing your payment information, you allow us to charge
+                  for future payments in accordance with our terms.
                 </Text>
               }
               checked={acceptedTerms}
@@ -767,12 +856,14 @@ export default function PaymentPage() {
                   background: getBg(
                     colorScheme,
                     "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)",
-                    `linear-gradient(135deg, ${theme.colors.yellow[9]} 0%, ${theme.colors.yellow[8]} 100%)`
+                    `linear-gradient(135deg, ${theme.colors.yellow[9]} 0%, ${theme.colors.yellow[8]} 100%)`,
                   ),
                   border: "none",
                 }}
               >
-                <Text size="sm">Please fill in all required fields before continuing.</Text>
+                <Text size="sm">
+                  Please fill in all required fields before continuing.
+                </Text>
               </Alert>
             </motion.div>
           )}
@@ -786,7 +877,7 @@ export default function PaymentPage() {
       background: getBg(
         colorScheme,
         `linear-gradient(135deg, ${color}15 0%, ${color}08 100%)`,
-        `linear-gradient(135deg, ${theme.colors.dark[6]} 0%, ${theme.colors.dark[7]} 100%)`
+        `linear-gradient(135deg, ${theme.colors.dark[6]} 0%, ${theme.colors.dark[7]} 100%)`,
       ),
       border: `2px solid ${getBg(colorScheme, `${color}30`, theme.colors.dark[5])}`,
       borderRadius: "16px",
@@ -837,7 +928,9 @@ export default function PaymentPage() {
                         value={cardExpiry}
                         onChange={(e) => setCardExpiry(e.currentTarget.value)}
                         size="md"
-                        error={showError(cardExpiry) && "Expiry date is required"}
+                        error={
+                          showError(cardExpiry) && "Expiry date is required"
+                        }
                         styles={inputStyles}
                       />
                     </Grid.Col>
@@ -858,7 +951,9 @@ export default function PaymentPage() {
                     onChange={(e) => setCardholder(e.currentTarget.value)}
                     leftSection={<IconUser size={18} color="#8b5cf6" />}
                     size="md"
-                    error={showError(cardholder) && "Cardholder name is required"}
+                    error={
+                      showError(cardholder) && "Cardholder name is required"
+                    }
                     styles={inputStyles}
                   />
                 </Stack>
@@ -907,7 +1002,7 @@ export default function PaymentPage() {
                       background: getBg(
                         colorScheme,
                         "#fef3c7",
-                        theme.colors.yellow[9]
+                        theme.colors.yellow[9],
                       ),
                     }}
                   >
@@ -939,21 +1034,43 @@ export default function PaymentPage() {
                     onChange={setSelectedBank}
                     leftSection={<IconBuildingBank size={18} color="#3b82f6" />}
                     size="md"
-                    error={showError(selectedBank) && "Bank selection is required"}
+                    error={
+                      showError(selectedBank) && "Bank selection is required"
+                    }
                     styles={{
                       ...inputStyles,
                       input: {
                         ...inputStyles.input,
-                        backgroundColor: getBg(colorScheme, "white", theme.colors.dark[6]),
+                        backgroundColor: getBg(
+                          colorScheme,
+                          "white",
+                          theme.colors.dark[6],
+                        ),
                       },
                       dropdown: {
-                        backgroundColor: getBg(colorScheme, "white", theme.colors.dark[7]),
-                        borderColor: getBg(colorScheme, "#e5e7eb", theme.colors.dark[5]),
+                        backgroundColor: getBg(
+                          colorScheme,
+                          "white",
+                          theme.colors.dark[7],
+                        ),
+                        borderColor: getBg(
+                          colorScheme,
+                          "#e5e7eb",
+                          theme.colors.dark[5],
+                        ),
                       },
                       item: {
-                        color: getBg(colorScheme, "black", theme.colors.gray[3]),
+                        color: getBg(
+                          colorScheme,
+                          "black",
+                          theme.colors.gray[3],
+                        ),
                         "&[data-hovered]": {
-                          backgroundColor: getBg(colorScheme, "#f1f5f9", theme.colors.dark[5]),
+                          backgroundColor: getBg(
+                            colorScheme,
+                            "#f1f5f9",
+                            theme.colors.dark[5],
+                          ),
                         },
                       },
                     }}
@@ -965,7 +1082,9 @@ export default function PaymentPage() {
                     onChange={(e) => setAccountNumber(e.currentTarget.value)}
                     leftSection={<IconCreditCard size={18} color="#3b82f6" />}
                     size="md"
-                    error={showError(accountNumber) && "Account number is required"}
+                    error={
+                      showError(accountNumber) && "Account number is required"
+                    }
                     styles={inputStyles}
                   />
                 </Stack>
@@ -992,7 +1111,7 @@ export default function PaymentPage() {
           background: getBg(
             colorScheme,
             "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)",
-            `linear-gradient(135deg, ${theme.colors.dark[7]} 0%, ${theme.colors.dark[6]} 100%)`
+            `linear-gradient(135deg, ${theme.colors.dark[7]} 0%, ${theme.colors.dark[6]} 100%)`,
           ),
           borderRadius: "24px",
         },
@@ -1049,7 +1168,11 @@ export default function PaymentPage() {
                 fontWeight: "bold",
                 border: `2px solid ${getBg(colorScheme, "#e5e7eb", theme.colors.dark[5])}`,
                 borderRadius: "12px",
-                backgroundColor: getBg(colorScheme, "white", theme.colors.dark[6]),
+                backgroundColor: getBg(
+                  colorScheme,
+                  "white",
+                  theme.colors.dark[6],
+                ),
                 color: getBg(colorScheme, "black", theme.colors.gray[3]),
                 transition: "all 0.3s ease",
                 "&:focus": {
@@ -1129,7 +1252,8 @@ export default function PaymentPage() {
           }}
         >
           <Text size="xs">
-            This action cannot be undone. Your account will be charged immediately.
+            This action cannot be undone. Your account will be charged
+            immediately.
           </Text>
         </Alert>
       </Stack>
@@ -1159,51 +1283,54 @@ export default function PaymentPage() {
         background: getBg(
           colorScheme,
           "linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)",
-          `linear-gradient(135deg, ${theme.colors.dark[8]} 0%, ${theme.colors.dark[9]} 100%)`
+          `linear-gradient(135deg, ${theme.colors.dark[8]} 0%, ${theme.colors.dark[9]} 100%)`,
         ),
       }}
     >
       {/* Header */}
       <Box
+        bg={getBg(colorScheme, "white", theme.colors.dark[7])}
+        py={{ base: "xs", md: "sm" }}
         style={{
-          background: getBg(
-            colorScheme,
-            "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
-            `linear-gradient(135deg, ${theme.colors.dark[9]} 0%, ${theme.colors.dark[8]} 100%)`
-          ),
-          padding: "20px 0",
+          borderBottom: `1px solid ${getBg(colorScheme, "#E9ECEF", theme.colors.dark[5])}`,
           position: "sticky",
           top: 0,
           zIndex: 100,
-          boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+          backdropFilter: "blur(10px)",
+          background: getBg(
+            colorScheme,
+            "rgba(255,255,255,0.95)",
+            `rgba(${theme.colors.dark[7]},0.95)`,
+          ),
         }}
       >
         <Container size="xl">
-          <Group justify="space-between">
-            <Link href="/">
+          <Group justify="space-between" wrap="nowrap">
+            {/* Logo */}
+            <Link href="/" style={{ flexShrink: 0 }}>
               <Image
                 src="/logo.jpg"
                 alt="Logo"
-                width={140}
-                height={48}
+                width={120}
+                height={40}
                 style={{
-                  height: "48px",
-                  borderRadius: "12px",
-                  boxShadow: "0 4px 12px rgba(255,255,255,0.1)",
+                  width: "auto",
+                  height: "40px",
+                  borderRadius: "8px",
+                  cursor: "pointer",
                 }}
               />
             </Link>
-            <Badge
+
+            {/* Back Button */}
+            <ActionIcon
+              variant="subtle"
+              color="gray"
               size="lg"
-              radius="sm"
-              style={{
-                background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
-                color: "white",
-                padding: "8px 16px",
-              }}
+              onClick={() => router.back()}
             >
-              Secure Payment Gateway
-            </Badge>
+              <IconArrowLeft size={24} />
+            </ActionIcon>
           </Group>
         </Container>
       </Box>
@@ -1220,7 +1347,7 @@ export default function PaymentPage() {
               background: getBg(
                 colorScheme,
                 "linear-gradient(135deg, #1e293b 0%, #475569 100%)",
-                `linear-gradient(135deg, ${theme.colors.gray[3]} 0%, ${theme.colors.gray[1]} 100%)`
+                `linear-gradient(135deg, ${theme.colors.gray[3]} 0%, ${theme.colors.gray[1]} 100%)`,
               ),
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
@@ -1229,7 +1356,9 @@ export default function PaymentPage() {
             {showConfirmation ? "Review Your Order" : "Complete Payment"}
           </Title>
           <Text ta="center" c="dimmed" size="lg">
-            {showConfirmation ? "Review your details before confirming" : "Upgrade your plan with confidence"}
+            {showConfirmation
+              ? "Review your details before confirming"
+              : "Upgrade your plan with confidence"}
           </Text>
         </Box>
 
@@ -1275,7 +1404,7 @@ export default function PaymentPage() {
                   background: getBg(
                     colorScheme,
                     "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)",
-                    `linear-gradient(135deg, ${theme.colors.dark[6]} 0%, ${theme.colors.dark[7]} 100%)`
+                    `linear-gradient(135deg, ${theme.colors.dark[6]} 0%, ${theme.colors.dark[7]} 100%)`,
                   ),
                   border: "none",
                   boxShadow: "0 20px 40px rgba(139, 92, 246, 0.15)",
@@ -1290,7 +1419,8 @@ export default function PaymentPage() {
                         fw={800}
                         ta="center"
                         style={{
-                          background: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
+                          background:
+                            "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
                           WebkitBackgroundClip: "text",
                           WebkitTextFillColor: "transparent",
                         }}
@@ -1310,7 +1440,11 @@ export default function PaymentPage() {
                             withBorder
                             p="lg"
                             radius="lg"
-                            bg={getBg(colorScheme, "white", theme.colors.dark[7])}
+                            bg={getBg(
+                              colorScheme,
+                              "white",
+                              theme.colors.dark[7],
+                            )}
                             style={{
                               cursor: showConfirmation ? "default" : "pointer",
                               border:
@@ -1322,14 +1456,22 @@ export default function PaymentPage() {
                                   ? getBg(
                                       colorScheme,
                                       `${plan.borderColor}08`,
-                                      theme.colors.dark[6]
+                                      theme.colors.dark[6],
                                     )
-                                  : getBg(colorScheme, "white", theme.colors.dark[7]),
+                                  : getBg(
+                                      colorScheme,
+                                      "white",
+                                      theme.colors.dark[7],
+                                    ),
                               transition: "all 0.3s ease",
                               position: "relative",
                               overflow: "hidden",
                             }}
-                            onClick={showConfirmation ? undefined : () => setSelectedPlan(key)}
+                            onClick={
+                              showConfirmation
+                                ? undefined
+                                : () => setSelectedPlan(key)
+                            }
                           >
                             {selectedPlan === key && (
                               <Box
@@ -1371,7 +1513,11 @@ export default function PaymentPage() {
                                   </Badge>
                                 )}
                                 {selectedPlan === key && (
-                                  <IconStar size={20} color="#fbbf24" fill="#fbbf24" />
+                                  <IconStar
+                                    size={20}
+                                    color="#fbbf24"
+                                    fill="#fbbf24"
+                                  />
                                 )}
                               </Group>
 
@@ -1422,7 +1568,7 @@ export default function PaymentPage() {
                         background: getBg(
                           colorScheme,
                           "linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)",
-                          `linear-gradient(135deg, ${theme.colors.blue[9]} 0%, ${theme.colors.blue[8]} 100%)`
+                          `linear-gradient(135deg, ${theme.colors.blue[9]} 0%, ${theme.colors.blue[8]} 100%)`,
                         ),
                         border: "none",
                         position: "relative",
@@ -1444,7 +1590,10 @@ export default function PaymentPage() {
                         <Text fw={700} size="lg" style={{ color: "#1d4ed8" }}>
                           <IconBadge
                             size={20}
-                            style={{ verticalAlign: "middle", marginRight: "8px" }}
+                            style={{
+                              verticalAlign: "middle",
+                              marginRight: "8px",
+                            }}
                           />
                           Order Summary
                         </Text>
@@ -1456,7 +1605,9 @@ export default function PaymentPage() {
 
                         <Group justify="space-between">
                           <Text c="dimmed">Billing Cycle</Text>
-                          <Text fw={600}>{selectedPlan === "annual" ? "Annual" : "Monthly"}</Text>
+                          <Text fw={600}>
+                            {selectedPlan === "annual" ? "Annual" : "Monthly"}
+                          </Text>
                         </Group>
 
                         <Group justify="space-between">
@@ -1466,7 +1617,13 @@ export default function PaymentPage() {
                           </Text>
                         </Group>
 
-                        <Divider color={getBg(colorScheme, "#e5e7eb", theme.colors.dark[5])} />
+                        <Divider
+                          color={getBg(
+                            colorScheme,
+                            "#e5e7eb",
+                            theme.colors.dark[5],
+                          )}
+                        />
 
                         <Group justify="space-between">
                           <Text fw={700} size="lg">
@@ -1476,7 +1633,8 @@ export default function PaymentPage() {
                             order={2}
                             fw={900}
                             style={{
-                              background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                              background:
+                                "linear-gradient(135deg, #10b981 0%, #059669 100%)",
                               WebkitBackgroundClip: "text",
                               WebkitTextFillColor: "transparent",
                             }}
@@ -1501,7 +1659,7 @@ export default function PaymentPage() {
                         background: getBg(
                           colorScheme,
                           "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)",
-                          `linear-gradient(135deg, ${theme.colors.yellow[9]} 0%, ${theme.colors.yellow[8]} 100%)`
+                          `linear-gradient(135deg, ${theme.colors.yellow[9]} 0%, ${theme.colors.yellow[8]} 100%)`,
                         ),
                         border: "none",
                       }}
@@ -1512,7 +1670,10 @@ export default function PaymentPage() {
                           <Text fw={700} size="md" style={{ color: "#92400e" }}>
                             Secure Payment
                           </Text>
-                          <Text size="sm" style={{ color: "#92400e", opacity: 0.8 }}>
+                          <Text
+                            size="sm"
+                            style={{ color: "#92400e", opacity: 0.8 }}
+                          >
                             Your payment is protected with bank-level security
                           </Text>
                         </Box>

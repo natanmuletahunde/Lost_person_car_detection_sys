@@ -82,13 +82,15 @@ export default function SubscriptionPage() {
   useEffect(() => {
     const checkAuth = () => {
       const userData = localStorage.getItem("currentUser");
-      
+
       if (userData) {
         const parsedUser = JSON.parse(userData);
         setUser(parsedUser);
-        
-        const registrationCount = parseInt(localStorage.getItem("registrationCount") || "0");
-        
+
+        const registrationCount = parseInt(
+          localStorage.getItem("registrationCount") || "0",
+        );
+
         if (registrationCount === 0) {
           router.push("/user/register");
           return;
@@ -167,7 +169,7 @@ export default function SubscriptionPage() {
   // Calculate max card height based on content
   useEffect(() => {
     const updateCardHeights = () => {
-      const heights = cardRefs.current.map(ref => {
+      const heights = cardRefs.current.map((ref) => {
         if (!ref) return 0;
         return ref.offsetHeight;
       });
@@ -176,21 +178,23 @@ export default function SubscriptionPage() {
 
     // Update heights on mount and when window resizes
     updateCardHeights();
-    window.addEventListener('resize', updateCardHeights);
-    
+    window.addEventListener("resize", updateCardHeights);
+
     // Also update after a short delay to ensure content is rendered
     const timeoutId = setTimeout(updateCardHeights, 100);
-    
+
     return () => {
-      window.removeEventListener('resize', updateCardHeights);
+      window.removeEventListener("resize", updateCardHeights);
       clearTimeout(timeoutId);
     };
   }, [isMobile, isTablet]);
 
   const getMaxCardHeight = () => {
-    return cardHeights.length > 0 
+    return cardHeights.length > 0
       ? Math.max(...cardHeights) + (isMobile ? 60 : 80)
-      : isMobile ? 600 : 650;
+      : isMobile
+        ? 600
+        : 650;
   };
 
   const handleDotClick = (index) => {
@@ -205,7 +209,7 @@ export default function SubscriptionPage() {
       router.push("/contact?plan=enterprise");
     } else {
       router.push(
-        `/subscribe/payment?plan=${selectedPlanData.id}&name=${encodeURIComponent(selectedPlanData.name)}`,
+        `/user/subscribe/payment?plan=${selectedPlanData.id}&name=${encodeURIComponent(selectedPlanData.name)}`,
       );
     }
   };
@@ -362,7 +366,10 @@ export default function SubscriptionPage() {
       />
 
       {/* Close Button */}
-      <Container size="xl" style={{ paddingTop: 20, position: "relative", zIndex: 10 }}>
+      <Container
+        size="xl"
+        style={{ paddingTop: 20, position: "relative", zIndex: 10 }}
+      >
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -425,15 +432,15 @@ export default function SubscriptionPage() {
                   Choose Your Perfect Plan
                 </Title>
               </motion.div>
-              
+
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
               >
-                <Text 
-                  size={{ base: "md", md: "lg" }} 
-                  c="dimmed" 
+                <Text
+                  size={{ base: "md", md: "lg" }}
+                  c="dimmed"
                   ta="center"
                   style={{ marginTop: spacing.xs }}
                 >
@@ -479,7 +486,7 @@ export default function SubscriptionPage() {
                   {plans.map((plan, index) => (
                     <motion.div
                       key={plan.id}
-                      ref={el => cardRefs.current[index] = el}
+                      ref={(el) => (cardRefs.current[index] = el)}
                       initial={false}
                       animate={getCardTransform(index)}
                       transition={{
@@ -509,7 +516,8 @@ export default function SubscriptionPage() {
                         p={isMobile ? "lg" : "xl"}
                         h="100%"
                         style={{
-                          background: isHovering === index ? plan.hoverColor : plan.color,
+                          background:
+                            isHovering === index ? plan.hoverColor : plan.color,
                           border: `2px solid ${index === activeIndex ? accentColor : primaryColor}40`,
                           transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
                           display: "flex",
@@ -580,23 +588,23 @@ export default function SubscriptionPage() {
                           />
                         </Box>
 
-                        <Stack 
-                          gap={spacing.lg} 
-                          style={{ 
+                        <Stack
+                          gap={spacing.lg}
+                          style={{
                             flex: 1,
                             height: "auto",
                             minHeight: "500px",
                             paddingTop: spacing.sm,
-                            paddingBottom: spacing.md
+                            paddingBottom: spacing.md,
                           }}
                         >
                           {/* Plan Header */}
                           <Stack gap={spacing.xs} style={{ flexShrink: 0 }}>
                             <Group justify="space-between" align="flex-start">
-                              <Title 
-                                order={3} 
-                                c="white" 
-                                fw={800} 
+                              <Title
+                                order={3}
+                                c="white"
+                                fw={800}
                                 size={isMobile ? "h3" : "h2"}
                                 style={{ marginBottom: spacing.xs }}
                               >
@@ -635,8 +643,17 @@ export default function SubscriptionPage() {
                                   }}
                                 >
                                   <Group gap={spacing.xs} align="flex-start">
-                                    <IconGift size={16} color={accentColor} style={{ marginTop: "2px" }} />
-                                    <Text size="sm" c="white" opacity={0.95} style={{ lineHeight: 1.3 }}>
+                                    <IconGift
+                                      size={16}
+                                      color={accentColor}
+                                      style={{ marginTop: "2px" }}
+                                    />
+                                    <Text
+                                      size="sm"
+                                      c="white"
+                                      opacity={0.95}
+                                      style={{ lineHeight: 1.3 }}
+                                    >
                                       {plan.description}
                                     </Text>
                                   </Group>
@@ -649,10 +666,10 @@ export default function SubscriptionPage() {
                           <motion.div
                             whileHover={{ scale: 1.02 }}
                             transition={{ type: "spring", stiffness: 300 }}
-                            style={{ 
+                            style={{
                               flexShrink: 0,
                               marginTop: spacing.xs,
-                              marginBottom: spacing.xs
+                              marginBottom: spacing.xs,
                             }}
                           >
                             <Box
@@ -670,13 +687,16 @@ export default function SubscriptionPage() {
                             >
                               {getPlanPriceDisplay(plan)}
                               {plan.id !== "enterprise" && (
-                                <Text 
-                                  size="md" 
-                                  c="white" 
-                                  opacity={0.9} 
+                                <Text
+                                  size="md"
+                                  c="white"
+                                  opacity={0.9}
                                   mt={spacing.xs}
                                 >
-                                  Billed {plan.id === "annual" ? "annually" : "monthly"}
+                                  Billed{" "}
+                                  {plan.id === "annual"
+                                    ? "annually"
+                                    : "monthly"}
                                 </Text>
                               )}
                             </Box>
@@ -703,14 +723,14 @@ export default function SubscriptionPage() {
                               overflow: "visible",
                             }}
                           >
-                            <Text 
-                              fw={700} 
-                              c="white" 
-                              size="md" 
+                            <Text
+                              fw={700}
+                              c="white"
+                              size="md"
                               mb={spacing.md}
-                              style={{ 
+                              style={{
                                 marginTop: spacing.xs,
-                                flexShrink: 0 
+                                flexShrink: 0,
                               }}
                             >
                               Included Features:
@@ -725,11 +745,11 @@ export default function SubscriptionPage() {
                                   whileHover={{ x: 5 }}
                                   style={{ flexShrink: 0 }}
                                 >
-                                  <Group 
-                                    gap={spacing.sm} 
-                                    wrap="nowrap" 
-                                    align="flex-start" 
-                                    style={{ 
+                                  <Group
+                                    gap={spacing.sm}
+                                    wrap="nowrap"
+                                    align="flex-start"
+                                    style={{
                                       minHeight: "36px",
                                     }}
                                   >
@@ -737,7 +757,9 @@ export default function SubscriptionPage() {
                                       color={feature.included ? "green" : "red"}
                                       size={20}
                                       radius="xl"
-                                      variant={feature.included ? "filled" : "outline"}
+                                      variant={
+                                        feature.included ? "filled" : "outline"
+                                      }
                                       style={{
                                         boxShadow: feature.included
                                           ? `0 4px 12px ${primaryColor}40`
@@ -770,10 +792,10 @@ export default function SubscriptionPage() {
                           <motion.div
                             whileHover={{ scale: 1.03 }}
                             whileTap={{ scale: 0.98 }}
-                            style={{ 
+                            style={{
                               marginTop: "auto",
                               marginBottom: spacing.xs,
-                              flexShrink: 0
+                              flexShrink: 0,
                             }}
                           >
                             <Button
@@ -794,13 +816,15 @@ export default function SubscriptionPage() {
                                 fontWeight: 800,
                                 fontSize: isMobile ? "16px" : "18px",
                                 height: "56px",
-                                color: index === activeIndex ? "#000" : primaryColor,
+                                color:
+                                  index === activeIndex ? "#000" : primaryColor,
                                 boxShadow: `0 8px 24px ${index === activeIndex ? accentColor + "40" : primaryColor + "40"}`,
                               }}
                               rightSection={
-                                !(plan.id === "monthly" && user?.subscription === "monthly") && (
-                                  <IconChevronRight size={20} />
-                                )
+                                !(
+                                  plan.id === "monthly" &&
+                                  user?.subscription === "monthly"
+                                ) && <IconChevronRight size={20} />
                               }
                             >
                               {plan.id === "monthly" &&
@@ -885,10 +909,10 @@ export default function SubscriptionPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.6 }}
-              style={{ 
-                width: "100%", 
+              style={{
+                width: "100%",
                 maxWidth: "600px",
-                marginTop: spacing.lg
+                marginTop: spacing.lg,
               }}
             >
               <Paper
@@ -913,7 +937,7 @@ export default function SubscriptionPage() {
                     animation: "shimmer 3s infinite linear",
                   }}
                 />
-                
+
                 <Group justify="center" gap={spacing.md}>
                   <motion.div
                     animate={{ rotate: [0, 10, -10, 0] }}
@@ -972,18 +996,22 @@ export default function SubscriptionPage() {
       {/* CSS Animations */}
       <style jsx global>{`
         @keyframes shimmer {
-          0% { background-position: -200% 0; }
-          100% { background-position: 200% 0; }
+          0% {
+            background-position: -200% 0;
+          }
+          100% {
+            background-position: 200% 0;
+          }
         }
-        
+
         html {
           scroll-behavior: smooth;
         }
-        
+
         .plan-card {
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        
+
         .plan-card:hover {
           transform: translateY(-4px);
           box-shadow: 0 20px 40px rgba(0, 52, 209, 0.15);
