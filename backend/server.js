@@ -4,7 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
-const xssClean = require('xss-clean');
+const expressSanitizer = require('express-sanitizer');
 
 const connectDB = require('./config/database');
 const config = require('./config');
@@ -37,7 +37,7 @@ app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
 app.use(mongoSanitize());
-app.use(xssClean());
+app.use(expressSanitizer());
 
 app.get('/api/v1/health', (req, res) => {
   res.status(200).json({ success: true, message: 'Server is running' });
