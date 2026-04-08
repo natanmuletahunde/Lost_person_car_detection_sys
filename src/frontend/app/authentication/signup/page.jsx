@@ -25,6 +25,7 @@ import { z } from 'zod';
 import { useMediaQuery } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { v4 as uuidv4 } from 'uuid';
+import { useRouter } from 'next/navigation';
 
 // Helper to get dynamic background/color values
 const getBg = (colorScheme, light, dark) => (colorScheme === 'dark' ? dark : light);
@@ -62,6 +63,7 @@ export default function SignupPage() {
   const isTablet = useMediaQuery('(max-width: 768px)');
   const theme = useMantineTheme();
   const { colorScheme } = useMantineColorScheme();
+  const router = useRouter();
 
   // Dynamic colors
   const mainBg = getBg(colorScheme, '#EAF2FF', theme.colors.dark[7]);
@@ -114,7 +116,7 @@ export default function SignupPage() {
     return requirements;
   };
 
-  // ************ NEW: Create signup log entry ************
+  // Create signup log entry
   const createSignupLog = async (user) => {
     try {
       // Optionally fetch IP address
@@ -185,18 +187,23 @@ export default function SignupPage() {
 
       const result = await response.json();
 
-      // ************ NEW: Log the signup ************
+      // Log the signup
       await createSignupLog(result).catch(err => console.error('Signup log error:', err));
       
       showNotification(
         'Success!',
-        'Account created successfully!',
+        'Account created successfully! Redirecting to login...',
         'green',
         <IconCheck size={18} />
       );
       
       console.log('User created:', result);
       reset();
+      
+      // Redirect to login page after a short delay
+      setTimeout(() => {
+        router.push('/authentication/login');
+      }, 1500);
       
     } catch (error) {
       console.error('Signup error:', error);

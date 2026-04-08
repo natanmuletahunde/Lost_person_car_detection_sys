@@ -463,7 +463,7 @@ export default function LoginPage() {
 
           <Text ta="center" mt="xs" c="dimmed">
             Don't have an account?{' '}
-            <Link href="/signup" style={{ color: '#228be6', textDecoration: 'none' }}>
+            <Link href="/authentication/signup" style={{ color: '#228be6', textDecoration: 'none' }}>
               Sign up
             </Link>
           </Text>
