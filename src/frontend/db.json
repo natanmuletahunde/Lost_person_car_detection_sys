@@ -307,6 +307,19 @@
       "lastLogin": "2026-03-03T08:24:58.340Z",
       "registrations": 1,
       "address": "adama"
+    },
+    {
+      "id": "BIkE6yYmUHs",
+      "firstName": "Abebe",
+      "lastName": "Kebede",
+      "email": "abebekebede@gmail.com",
+      "phone": "+25191111111",
+      "password": "AbebeKebede@11",
+      "createdAt": "2026-04-08T06:18:45.452Z",
+      "updatedAt": "2026-04-08T06:24:01.586Z",
+      "isActive": true,
+      "role": "user",
+      "lastLogin": "2026-04-08T06:24:01.586Z"
     }
   ],
   "gpsDevices": [
@@ -399,6 +412,33 @@
       "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
       "ipAddress": "196.191.52.70",
       "id": "4xF3du67XQQ"
+    },
+    {
+      "userId": "97a39fa6-4d93-4b98-a4e0-204c225eb368",
+      "userEmail": "User1@gmail.com",
+      "action": "logout",
+      "timestamp": "2026-04-08T06:14:54.089Z",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+      "id": "3qyENbM8A1A"
+    },
+    {
+      "userId": "BIkE6yYmUHs",
+      "userEmail": "abebekebede@gmail.com",
+      "action": "signup",
+      "timestamp": "2026-04-08T06:18:46.870Z",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+      "ipAddress": "196.189.123.61",
+      "id": "7rzZ8cD8UXE"
+    },
+    {
+      "userId": "BIkE6yYmUHs",
+      "userEmail": "abebekebede@gmail.com",
+      "userPhone": "+25191111111",
+      "loginType": "email",
+      "loginTime": "2026-04-08T06:24:01.543Z",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+      "ipAddress": "196.189.123.61",
+      "id": "ZcVxPkCEYqE"
     }
   ],
   "$schema": "./node_modules/json-server/schema.json"
