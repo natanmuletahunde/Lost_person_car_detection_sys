@@ -1,0 +1,150 @@
+openapi: 3.0.3
+info:
+  title: Lost Person Car Detection API
+  version: 1.0.0
+  description: Sample OpenAPI contract for the backend
+servers:
+  - url: http://localhost:5000
+tags:
+  - name: Authentication
+  - name: Sightings
+  - name: Car Detection
+  - name: Admin Approvals
+  - name: Image Upload
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ApiSuccess:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Operation successful
+        data:
+          type: object
+    GeoPoint:
+      type: object
+      required: [coordinates]
+      properties:
+        type:
+          type: string
+          example: Point
+        coordinates:
+          type: array
+          minItems: 2
+          maxItems: 2
+          items:
+            type: number
+        address:
+          type: string
+paths:
+  /api/v1/auth/login:
+    post:
+      tags: [Authentication]
+      summary: Login user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [loginValue, password]
+              properties:
+                loginValue:
+                  type: string
+                password:
+                  type: string
+      responses:
+        "200":
+          description: Login successful
+  /api/v1/sightings:
+    post:
+      tags: [Sightings]
+      summary: Create person or vehicle sighting
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, description, location]
+              properties:
+                type:
+                  type: string
+                  enum: [person, vehicle]
+                description:
+                  type: string
+                location:
+                  $ref: "#/components/schemas/GeoPoint"
+                images:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "201":
+          description: Sighting created
+  /api/v1/detections/vehicles:
+    post:
+      tags: [Car Detection]
+      summary: Report a vehicle detection
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [description, location]
+              properties:
+                description:
+                  type: string
+                location:
+                  $ref: "#/components/schemas/GeoPoint"
+      responses:
+        "201":
+          description: Vehicle detection created
+  /api/v1/admin/sightings/{id}/approve:
+    patch:
+      tags: [Admin Approvals]
+      summary: Approve sighting
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Approved
+  /api/v1/uploads/image:
+    post:
+      tags: [Image Upload]
+      summary: Upload image evidence
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  format: binary
+      responses:
+        "201":
+          description: Uploaded
