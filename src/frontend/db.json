@@ -87,58 +87,6 @@
       "contactEmail": ""
     },
     {
-      "caseId": "CASE-MNMUU8V1-9MT0",
-      "type": "Person",
-      "reportedBy": {
-        "userId": "97a39fa6-4d93-4b98-a4e0-204c225eb368",
-        "firstName": "user",
-        "lastName": "user",
-        "email": "User1@gmail.com",
-        "phone": "+251911111111",
-        "role": "user",
-        "telegramUsername": "tesfa"
-      },
-      "reportDate": "2026-04-06T07:14:19.357Z",
-      "status": "Active",
-      "lastUpdated": "2026-04-06T07:14:19.357Z",
-      "verified": false,
-      "matches": [],
-      "notes": [],
-      "contactMethods": {
-        "email": "User1@gmail.com",
-        "phone": "+251911111111",
-        "telegram": "tesfa"
-      },
-      "firstName": "tesfalem",
-      "middleName": "Badeg",
-      "lastName": "negewo",
-      "gender": "Male",
-      "age": 20,
-      "height": 169,
-      "weight": 61,
-      "description": "additional description",
-      "specialCase": "none",
-      "brand": "",
-      "model": "",
-      "submodel": "",
-      "color": "",
-      "vehicleDescription": "",
-      "plateType": "",
-      "region": "",
-      "code": "",
-      "plateNumber": "",
-      "specialCategory": null,
-      "location": "Gerji III, Gerji, Bole, Addis Ababa, 2310, Ethiopia",
-      "lastSeenDate": "2026-03-02",
-      "lastSeenTime": "02:17",
-      "telegramUsername": "tesfa",
-      "additionalContactInfo": "",
-      "latitude": "8.994680687595206",
-      "longitude": "38.80974054336548",
-      "imagePreview": null,
-      "id": "e9IJVIW2yRc"
-    },
-    {
       "caseId": "CASE-MNQ3RXAJ-N06K",
       "type": "Person",
       "reportedBy": {
@@ -340,10 +288,10 @@
       "phone": "0962061126",
       "password": "User@2222",
       "createdAt": "2026-02-05T14:38:14.973Z",
-      "updatedAt": "2026-03-28T10:04:33.777Z",
+      "updatedAt": "2026-04-27T17:24:40.824Z",
       "isActive": true,
       "role": "admin",
-      "lastLogin": "2026-03-28T10:04:33.777Z"
+      "lastLogin": "2026-04-27T17:24:40.824Z"
     },
     {
       "id": "05ed362e-1797-4f9b-be13-a7df9880dd55",
@@ -385,6 +333,19 @@
       "isActive": true,
       "role": "user",
       "registrations": 1
+    },
+    {
+      "id": "GmIufRqPYlU",
+      "firstName": "Test",
+      "lastName": "User",
+      "email": "testuser@gmail.com",
+      "phone": "0973671282",
+      "password": "TestUser@1",
+      "createdAt": "2026-04-27T17:14:38.083Z",
+      "updatedAt": "2026-04-27T17:14:45.487Z",
+      "isActive": true,
+      "role": "user",
+      "lastLogin": "2026-04-27T17:14:45.487Z"
     }
   ],
   "gpsDevices": [
@@ -514,6 +475,62 @@
       "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
       "ipAddress": "196.189.123.18",
       "id": "wjRf7W3hJ-E"
+    },
+    {
+      "userId": "97a39fa6-4d93-4b98-a4e0-204c225eb368",
+      "userEmail": "User1@gmail.com",
+      "action": "case_delete",
+      "caseId": "e9IJVIW2yRc",
+      "reportType": "Person",
+      "timestamp": "2026-04-27T07:28:07.890Z",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "ipAddress": "196.191.52.252",
+      "id": "b6MJidO9yxg"
+    },
+    {
+      "userId": "97a39fa6-4d93-4b98-a4e0-204c225eb368",
+      "userEmail": "User1@gmail.com",
+      "action": "logout",
+      "timestamp": "2026-04-27T17:13:18.291Z",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "id": "tMzmd_LBWso"
+    },
+    {
+      "userId": "GmIufRqPYlU",
+      "userEmail": "testuser@gmail.com",
+      "action": "signup",
+      "timestamp": "2026-04-27T17:14:38.621Z",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "ipAddress": "196.191.52.252",
+      "id": "KC9rx8zFeCw"
+    },
+    {
+      "userId": "GmIufRqPYlU",
+      "userEmail": "testuser@gmail.com",
+      "userPhone": "0973671282",
+      "loginType": "email",
+      "loginTime": "2026-04-27T17:14:45.467Z",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "ipAddress": "196.191.52.252",
+      "id": "5whHujz4VVc"
+    },
+    {
+      "userId": "GmIufRqPYlU",
+      "userEmail": "testuser@gmail.com",
+      "action": "logout",
+      "timestamp": "2026-04-27T17:24:11.818Z",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "id": "gR97BLR4NkY"
+    },
+    {
+      "userId": "a94e831a-9536-4310-a772-f864e5bd975a",
+      "userEmail": "user2@gmail.com",
+      "userPhone": "0962061126",
+      "loginType": "email",
+      "loginTime": "2026-04-27T17:24:40.755Z",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "ipAddress": "196.191.52.252",
+      "id": "1qGyY2A4fNo"
     }
   ],
   "$schema": "./node_modules/json-server/schema.json"
