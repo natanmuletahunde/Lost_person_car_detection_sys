@@ -88,22 +88,22 @@ import { useRouter } from 'next/navigation';
 import MainFooter from '../../components/MainFooter';
 import { useMediaQuery } from '@mantine/hooks';
 
-// API URLs (same as register page)
+// API URLs
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
 const MISSING_PERSONS_API = `${API_BASE_URL}/missingPersons`;
 const MISSING_VEHICLES_API = `${API_BASE_URL}/missingVehicles`;
 
-// Primary Colors (remain the same in both modes)
+// Primary Colors
 const PRIMARY_COLOR = '#0034D1';
 const PRIMARY_LIGHT = '#4d79ff';
 const PRIMARY_DARK = '#0029a8';
 const PRIMARY_GRADIENT = `linear-gradient(135deg, ${PRIMARY_COLOR} 0%, #0066ff 100%)`;
 const PRIMARY_GRADIENT_HOVER = `linear-gradient(135deg, ${PRIMARY_DARK} 0%, #0052d4 100%)`;
 
-// Helper to get dynamic background/color values
+// Helper for dynamic backgrounds
 const getBg = (colorScheme, light, dark) => (colorScheme === 'dark' ? dark : light);
 
-// Status options with colors
+// Status options
 const STATUS_OPTIONS = [
   { value: 'all', label: 'All Status', color: 'gray' },
   { value: 'active', label: 'Active', color: 'blue' },
@@ -128,7 +128,7 @@ const PRIORITY_OPTIONS = [
   { value: 'low', label: 'Low Priority', color: 'green' }
 ];
 
-// Helper function for showing notifications
+// Notification helper
 const showNotification = (title, message, type = 'info', icon = null) => {
   let color = 'blue';
   let defaultIcon = <IconCheck size={16} />;
@@ -170,13 +170,13 @@ export default function ReportedCasesPage() {
   const { colorScheme } = useMantineColorScheme();
   const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
   
-  // State management
+  // State
   const [loading, setLoading] = useState(true);
   const [cases, setCases] = useState([]);
   const [filteredCases, setFilteredCases] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
   const [selectedCase, setSelectedCase] = useState(null);
-  const [viewMode, setViewMode] = useState('list'); // 'list' or 'grid'
+  const [viewMode, setViewMode] = useState('list');
   
   // Modal states
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -196,7 +196,7 @@ export default function ReportedCasesPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [exporting, setExporting] = useState(false);
   
-  // Stats state
+  // Stats
   const [stats, setStats] = useState({
     total: 0,
     active: 0,
@@ -206,7 +206,7 @@ export default function ReportedCasesPage() {
     vehicles: 0
   });
 
-  // Filter states
+  // Filters
   const [filters, setFilters] = useState({
     search: '',
     type: 'all',
@@ -220,11 +220,43 @@ export default function ReportedCasesPage() {
   const [page, setPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Sort state
+  // Sort
   const [sortBy, setSortBy] = useState('date');
   const [sortDirection, setSortDirection] = useState('desc');
 
-  // Helper function to format user information
+  // ********** LOGGING FUNCTION **********
+  const createActionLog = async (action, details = {}) => {
+    try {
+      if (!currentUser) return;
+      let ip = 'unknown';
+      try {
+        const ipRes = await fetch('https://api.ipify.org?format=json');
+        const ipData = await ipRes.json();
+        ip = ipData.ip;
+      } catch (e) { /* ignore */ }
+      
+      const logEntry = {
+        userId: currentUser.id,
+        userEmail: currentUser.email,
+        action,
+        ...details,
+        timestamp: new Date().toISOString(),
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+        ipAddress: ip,
+      };
+      
+      await fetch('http://localhost:3001/logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(logEntry),
+      });
+    } catch (error) {
+      console.error('Logging failed:', error);
+      // Non-blocking
+    }
+  };
+  // **************************************
+
   const formatUserInfo = (user) => {
     if (!user) return 'Unknown';
     
@@ -239,12 +271,11 @@ export default function ReportedCasesPage() {
     return user;
   };
 
-  // Fetch cases and user data (filtered by logged-in user)
+  // Fetch cases
   const fetchData = async (showLoadingNotification = false) => {
     try {
       if (showLoadingNotification) setRefreshing(true);
       
-      // Get current user from localStorage
       const userData = localStorage.getItem('currentUser');
       if (!userData) {
         router.push('/authentication/login');
@@ -253,9 +284,6 @@ export default function ReportedCasesPage() {
       const user = JSON.parse(userData);
       setCurrentUser(user);
 
-      // Fetch cases from both endpoints filtered by reportedBy.userId
-      // IMPORTANT: This query parameter works with JSON-server because it supports dot notation.
-      // In a real backend, you would authenticate the request and let the server filter by the logged-in user.
       const [personsResponse, vehiclesResponse] = await Promise.all([
         fetch(`${MISSING_PERSONS_API}?reportedBy.userId=${user.id}`),
         fetch(`${MISSING_VEHICLES_API}?reportedBy.userId=${user.id}`)
@@ -268,7 +296,6 @@ export default function ReportedCasesPage() {
       const personsData = await personsResponse.json();
       const vehiclesData = await vehiclesResponse.json();
 
-      // Combine and format data - ONLY using fields from registration form
       const allCases = [
         ...personsData.map(item => ({
           id: item.id,
@@ -333,7 +360,6 @@ export default function ReportedCasesPage() {
       setCases(allCases);
       setFilteredCases(allCases);
       
-      // Calculate statistics based on user's cases
       const statsData = {
         total: allCases.length,
         active: allCases.filter(c => c.status === 'active').length,
@@ -370,11 +396,10 @@ export default function ReportedCasesPage() {
     fetchData();
   }, []);
 
-  // Apply filters (client-side filtering on the already user-specific data)
+  // Filtering logic
   useEffect(() => {
     let result = [...cases];
 
-    // Apply search filter
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
       result = result.filter(caseItem =>
@@ -389,22 +414,18 @@ export default function ReportedCasesPage() {
       );
     }
 
-    // Apply type filter
     if (filters.type !== 'all') {
       result = result.filter(caseItem => caseItem.type === filters.type);
     }
 
-    // Apply status filter
     if (filters.status !== 'all') {
       result = result.filter(caseItem => caseItem.status === filters.status);
     }
 
-    // Apply priority filter
     if (filters.priority !== 'all') {
       result = result.filter(caseItem => caseItem.priority === filters.priority);
     }
 
-    // Apply date range filter
     if (filters.startDate || filters.endDate) {
       result = result.filter(caseItem => {
         const caseDate = new Date(caseItem.reportDate);
@@ -424,7 +445,6 @@ export default function ReportedCasesPage() {
       });
     }
 
-    // Apply sorting
     result.sort((a, b) => {
       let aValue, bValue;
       
@@ -458,26 +478,23 @@ export default function ReportedCasesPage() {
     setPage(1);
   }, [filters, cases, sortBy, sortDirection]);
 
-  // Pagination calculation
   const totalPages = Math.ceil(filteredCases.length / itemsPerPage);
   const paginatedCases = filteredCases.slice(
     (page - 1) * itemsPerPage,
     page * itemsPerPage
   );
 
-  // Get status badge color
   const getStatusColor = (status) => {
     const statusOption = STATUS_OPTIONS.find(s => s.value === status);
     return statusOption?.color || 'gray';
   };
 
-  // Get priority badge color
   const getPriorityColor = (priority) => {
     const priorityOption = PRIORITY_OPTIONS.find(p => p.value === priority);
     return priorityOption?.color || 'gray';
   };
 
-  // Handle case deletion
+  // 🔹 DELETE with log
   const handleDeleteCase = async (caseId, type) => {
     setDeleting(true);
     try {
@@ -487,7 +504,6 @@ export default function ReportedCasesPage() {
       });
 
       if (response.ok) {
-        // Remove from state
         setCases(prev => prev.filter(c => c.id !== caseId));
         setDeleteModalOpen(false);
         setSelectedCase(null);
@@ -497,6 +513,7 @@ export default function ReportedCasesPage() {
           'Case has been successfully deleted.',
           'success'
         );
+        createActionLog('case_delete', { caseId, reportType: type });
       } else {
         throw new Error('Failed to delete case');
       }
@@ -512,7 +529,7 @@ export default function ReportedCasesPage() {
     }
   };
 
-  // Export data
+  // 🔹 EXPORT with log
   const handleExportData = () => {
     setExporting(true);
     try {
@@ -542,6 +559,7 @@ export default function ReportedCasesPage() {
         `Exported ${filteredCases.length} cases to CSV file.`,
         'success'
       );
+      createActionLog('data_export', { count: filteredCases.length });
     } catch (error) {
       console.error('Error exporting data:', error);
       showNotification(
@@ -554,7 +572,6 @@ export default function ReportedCasesPage() {
     }
   };
 
-  // Clear all filters
   const clearFilters = () => {
     setFilters({
       search: '',
@@ -572,17 +589,16 @@ export default function ReportedCasesPage() {
     );
   };
 
-  // Handle view button click
+  // 🔹 VIEW with log
   const handleViewClick = (caseItem) => {
     setCaseToView(caseItem);
     setViewModalOpen(true);
+    createActionLog('case_view', { caseId: caseItem.caseId, reportType: caseItem.type });
   };
 
-  // Handle edit button click
   const handleEditClick = (caseItem) => {
     setCaseToEdit(caseItem);
     
-    // Create form data based on case type
     const formData = {
       type: caseItem.type,
       status: caseItem.status,
@@ -595,14 +611,12 @@ export default function ReportedCasesPage() {
       contactPhone: caseItem.contactPhone || '',
       contactEmail: caseItem.contactEmail || '',
       telegramUsername: caseItem.telegramUsername || '',
-      // Person specific fields
       firstName: caseItem.firstName || '',
       lastName: caseItem.lastName || '',
       age: caseItem.age || '',
       gender: caseItem.gender || '',
       height: caseItem.height || '',
       weight: caseItem.weight || '',
-      // Vehicle specific fields
       brand: caseItem.brand || '',
       model: caseItem.model || '',
       submodel: caseItem.submodel || '',
@@ -618,14 +632,13 @@ export default function ReportedCasesPage() {
     setEditModalOpen(true);
   };
 
-  // Handle alert button click
   const handleAlertClick = (caseItem) => {
     setCaseToAlert(caseItem);
     setAlertMessage('');
     setAlertModalOpen(true);
   };
 
-  // Send alert
+  // 🔹 ALERT with log
   const handleSendAlert = async () => {
     if (!alertMessage.trim()) {
       showNotification('Alert Message Required', 'Please enter an alert message.', 'warning');
@@ -633,7 +646,7 @@ export default function ReportedCasesPage() {
     }
     setSendingAlert(true);
     try {
-      // Simulate API call (replace with actual endpoint)
+      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       showNotification(
         'Alert Sent',
@@ -641,6 +654,7 @@ export default function ReportedCasesPage() {
         'warning'
       );
       setAlertModalOpen(false);
+      createActionLog('case_alert', { caseId: caseToAlert?.caseId, reportType: caseToAlert?.type, messageLength: alertMessage.length });
     } catch (error) {
       showNotification('Alert Failed', 'Could not send alert.', 'error');
     } finally {
@@ -648,7 +662,7 @@ export default function ReportedCasesPage() {
     }
   };
 
-  // Handle share
+  // 🔹 SHARE with log
   const handleShare = (caseItem) => {
     const shareData = {
       title: `Missing ${caseItem.type} - ${caseItem.displayName}`,
@@ -657,18 +671,17 @@ export default function ReportedCasesPage() {
     };
     if (navigator.share) {
       navigator.share(shareData).catch(() => {
-        // Fallback if share fails or is cancelled
         navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}`);
         showNotification('Share', 'Case info copied to clipboard', 'info');
       });
     } else {
-      // Fallback: copy to clipboard
       navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}`);
       showNotification('Share', 'Case info copied to clipboard', 'info');
     }
+    createActionLog('case_share', { caseId: caseItem.caseId, reportType: caseItem.type });
   };
 
-  // Handle form submission
+  // 🔹 EDIT SAVE with log
   const handleSaveEdit = async () => {
     if (!isEditFormValid()) {
       showNotification('Validation Error', 'Please fill all required fields.', 'warning');
@@ -680,7 +693,6 @@ export default function ReportedCasesPage() {
         ? `${MISSING_PERSONS_API}/${caseToEdit.id}`
         : `${MISSING_VEHICLES_API}/${caseToEdit.id}`;
       
-      // Prepare update data
       const updateData = {
         ...editForm,
         lastUpdated: new Date().toISOString(),
@@ -694,7 +706,6 @@ export default function ReportedCasesPage() {
       });
       
       if (response.ok) {
-        // Update the case in state
         setCases(prev => prev.map(c => 
           c.id === caseToEdit.id 
             ? { 
@@ -712,6 +723,7 @@ export default function ReportedCasesPage() {
         setCaseToEdit(null);
         
         showNotification('Case Updated', 'Case has been successfully updated.', 'success');
+        createActionLog('case_edit', { caseId: caseToEdit.caseId, reportType: caseToEdit.type });
       } else {
         throw new Error('Failed to update case');
       }
@@ -723,12 +735,10 @@ export default function ReportedCasesPage() {
     }
   };
 
-  // Handle form input changes
   const handleEditFormChange = (field, value) => {
     setEditForm(prev => ({ ...prev, [field]: value }));
   };
 
-  // Validate edit form
   const isEditFormValid = () => {
     if (!caseToEdit) return false;
     if (caseToEdit.type === 'Person') {
@@ -738,7 +748,7 @@ export default function ReportedCasesPage() {
     }
   };
 
-  // Loading state with skeletons
+  // Loading state
   if (loading) {
     return (
       <Box style={{ 
@@ -881,113 +891,33 @@ export default function ReportedCasesPage() {
 
           {/* Stats Cards */}
           <SimpleGrid cols={{ base: 2, sm: 3, lg: 6 }} spacing="md" mb={40}>
-            <Card
-              padding="md"
-              radius="lg"
-              withBorder
-              bg={getBg(colorScheme, 'white', theme.colors.dark[7])}
-              style={{ borderTop: `4px solid ${PRIMARY_COLOR}`, transition: 'transform 0.2s', ':hover': { transform: 'translateY(-2px)' } }}
-            >
-              <Flex align="center" gap="md">
-                <Box style={{ background: PRIMARY_GRADIENT, padding: 8, borderRadius: 8 }}>
-                  <IconList size={20} color="white" />
-                </Box>
-                <Box>
-                  <Text size="xs" c="dimmed">Total Cases</Text>
-                  <Title order={2} style={{ color: PRIMARY_DARK }}>{stats.total}</Title>
-                </Box>
-              </Flex>
-            </Card>
-            
-            <Card
-              padding="md"
-              radius="lg"
-              withBorder
-              bg={getBg(colorScheme, 'white', theme.colors.dark[7])}
-              style={{ borderTop: '4px solid #2f9e44', transition: 'transform 0.2s', ':hover': { transform: 'translateY(-2px)' } }}
-            >
-              <Flex align="center" gap="md">
-                <Box style={{ background: 'linear-gradient(135deg, #2f9e44 0%, #37b24d 100%)', padding: 8, borderRadius: 8 }}>
-                  <IconCheck size={20} color="white" />
-                </Box>
-                <Box>
-                  <Text size="xs" c="dimmed">Resolved</Text>
-                  <Title order={2} style={{ color: '#2f9e44' }}>{stats.resolved}</Title>
-                </Box>
-              </Flex>
-            </Card>
-            
-            <Card
-              padding="md"
-              radius="lg"
-              withBorder
-              bg={getBg(colorScheme, 'white', theme.colors.dark[7])}
-              style={{ borderTop: '4px solid #1971c2', transition: 'transform 0.2s', ':hover': { transform: 'translateY(-2px)' } }}
-            >
-              <Flex align="center" gap="md">
-                <Box style={{ background: 'linear-gradient(135deg, #1971c2 0%, #1c7ed6 100%)', padding: 8, borderRadius: 8 }}>
-                  <IconAlertCircle size={20} color="white" />
-                </Box>
-                <Box>
-                  <Text size="xs" c="dimmed">Active</Text>
-                  <Title order={2} style={{ color: '#1971c2' }}>{stats.active}</Title>
-                </Box>
-              </Flex>
-            </Card>
-            
-            <Card
-              padding="md"
-              radius="lg"
-              withBorder
-              bg={getBg(colorScheme, 'white', theme.colors.dark[7])}
-              style={{ borderTop: '4px solid #e67700', transition: 'transform 0.2s', ':hover': { transform: 'translateY(-2px)' } }}
-            >
-              <Flex align="center" gap="md">
-                <Box style={{ background: 'linear-gradient(135deg, #e67700 0%, #f08c00 100%)', padding: 8, borderRadius: 8 }}>
-                  <IconClock size={20} color="white" />
-                </Box>
-                <Box>
-                  <Text size="xs" c="dimmed">Pending</Text>
-                  <Title order={2} style={{ color: '#e67700' }}>{stats.pending}</Title>
-                </Box>
-              </Flex>
-            </Card>
-            
-            <Card
-              padding="md"
-              radius="lg"
-              withBorder
-              bg={getBg(colorScheme, 'white', theme.colors.dark[7])}
-              style={{ borderTop: '4px solid #ae3ec9', transition: 'transform 0.2s', ':hover': { transform: 'translateY(-2px)' } }}
-            >
-              <Flex align="center" gap="md">
-                <Box style={{ background: 'linear-gradient(135deg, #ae3ec9 0%, #be4bdb 100%)', padding: 8, borderRadius: 8 }}>
-                  <IconUser size={20} color="white" />
-                </Box>
-                <Box>
-                  <Text size="xs" c="dimmed">Persons</Text>
-                  <Title order={2} style={{ color: '#ae3ec9' }}>{stats.persons}</Title>
-                </Box>
-              </Flex>
-            </Card>
-            
-            <Card
-              padding="md"
-              radius="lg"
-              withBorder
-              bg={getBg(colorScheme, 'white', theme.colors.dark[7])}
-              style={{ borderTop: '4px solid #f59f00', transition: 'transform 0.2s', ':hover': { transform: 'translateY(-2px)' } }}
-            >
-              <Flex align="center" gap="md">
-                <Box style={{ background: 'linear-gradient(135deg, #f59f00 0%, #fab005 100%)', padding: 8, borderRadius: 8 }}>
-                  <IconCar size={20} color="white" />
-                </Box>
-                <Box>
-                  <Text size="xs" c="dimmed">Vehicles</Text>
-                  <Title order={2} style={{ color: '#f59f00' }}>{stats.vehicles}</Title>
-                </Box>
-              </Flex>
-            </Card>
+            {[
+              { label: 'Total Cases', value: stats.total, color: PRIMARY_COLOR, icon: <IconList size={20} color="white" />, gradient: PRIMARY_GRADIENT },
+              { label: 'Resolved', value: stats.resolved, color: '#2f9e44', icon: <IconCheck size={20} color="white" />, gradient: 'linear-gradient(135deg, #2f9e44 0%, #37b24d 100%)' },
+              { label: 'Active', value: stats.active, color: '#1971c2', icon: <IconAlertCircle size={20} color="white" />, gradient: 'linear-gradient(135deg, #1971c2 0%, #1c7ed6 100%)' },
+              { label: 'Pending', value: stats.pending, color: '#e67700', icon: <IconClock size={20} color="white" />, gradient: 'linear-gradient(135deg, #e67700 0%, #f08c00 100%)' },
+              { label: 'Persons', value: stats.persons, color: '#ae3ec9', icon: <IconUser size={20} color="white" />, gradient: 'linear-gradient(135deg, #ae3ec9 0%, #be4bdb 100%)' },
+              { label: 'Vehicles', value: stats.vehicles, color: '#f59f00', icon: <IconCar size={20} color="white" />, gradient: 'linear-gradient(135deg, #f59f00 0%, #fab005 100%)' },
+            ].map(stat => (
+              <Card
+                key={stat.label}
+                padding="md"
+                radius="lg"
+                withBorder
+                bg={getBg(colorScheme, 'white', theme.colors.dark[7])}
+                style={{ borderTop: `4px solid ${stat.color}`, transition: 'transform 0.2s', ':hover': { transform: 'translateY(-2px)' } }}
+              >
+                <Flex align="center" gap="md">
+                  <Box style={{ background: stat.gradient, padding: 8, borderRadius: 8 }}>
+                    {stat.icon}
+                  </Box>
+                  <Box>
+                    <Text size="xs" c="dimmed">{stat.label}</Text>
+                    <Title order={2} style={{ color: stat.color }}>{stat.value}</Title>
+                  </Box>
+                </Flex>
+              </Card>
+            ))}
           </SimpleGrid>
         </Box>
 
@@ -1008,11 +938,7 @@ export default function ReportedCasesPage() {
                 value={viewMode}
                 onChange={(value) => {
                   setViewMode(value);
-                  showNotification(
-                    'View Mode Changed',
-                    `Switched to ${value} view`,
-                    'info'
-                  );
+                  showNotification('View Mode Changed', `Switched to ${value} view`, 'info');
                 }}
                 data={[
                   { value: 'list', label: <IconList size={16} /> },
@@ -1180,11 +1106,7 @@ export default function ReportedCasesPage() {
                 size="sm"
                 onClick={() => {
                   setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
-                  showNotification(
-                    'Sort Direction Changed',
-                    `Sorting in ${sortDirection === 'asc' ? 'descending' : 'ascending'} order`,
-                    'info'
-                  );
+                  showNotification('Sort Direction Changed', `Sorting in ${sortDirection === 'asc' ? 'descending' : 'ascending'} order`, 'info');
                 }}
               >
                 {sortDirection === 'asc' ? <IconSortAscending size={16} /> : <IconSortDescending size={16} />}
@@ -1725,7 +1647,6 @@ export default function ReportedCasesPage() {
       >
         {caseToView && (
           <Box>
-            {/* Case Type Badge */}
             <Flex justify="space-between" align="center" mb="lg">
               <Badge
                 color={caseToView.type === 'Person' ? 'grape' : 'orange'}
@@ -1756,7 +1677,7 @@ export default function ReportedCasesPage() {
                 </Tabs.Tab>
               </Tabs.List>
 
-              {/* Basic Information Tab */}
+              {/* Basic Info Tab */}
               <Tabs.Panel value="basic">
                 <Stack gap="md">
                   <Grid gutter="md">
@@ -1785,16 +1706,13 @@ export default function ReportedCasesPage() {
                       </Box>
                     </Grid.Col>
                   </Grid>
-
                   <Divider color={getBg(colorScheme, theme.colors.gray[2], theme.colors.dark[5])} />
-
                   <Box>
                     <Text size="sm" c="dimmed" mb={4}>Description</Text>
                     <Text size="sm" fw={500}>
                       {caseToView.description || caseToView.vehicleDescription || 'No description provided'}
                     </Text>
                   </Box>
-
                   <Box>
                     <Text size="sm" c="dimmed" mb={4}>Report Date</Text>
                     <Text size="sm" fw={500}>
@@ -1810,93 +1728,33 @@ export default function ReportedCasesPage() {
                   <Stack gap="md">
                     <Grid gutter="md">
                       <Grid.Col span={6}>
-                        <Box>
-                          <Text size="sm" c="dimmed" mb={4}>First Name</Text>
-                          <Text size="sm" fw={500}>{caseToView.firstName || 'N/A'}</Text>
-                        </Box>
+                        <Box><Text size="sm" c="dimmed" mb={4}>First Name</Text><Text size="sm" fw={500}>{caseToView.firstName || 'N/A'}</Text></Box>
                       </Grid.Col>
                       <Grid.Col span={6}>
-                        <Box>
-                          <Text size="sm" c="dimmed" mb={4}>Last Name</Text>
-                          <Text size="sm" fw={500}>{caseToView.lastName || 'N/A'}</Text>
-                        </Box>
+                        <Box><Text size="sm" c="dimmed" mb={4}>Last Name</Text><Text size="sm" fw={500}>{caseToView.lastName || 'N/A'}</Text></Box>
                       </Grid.Col>
                     </Grid>
-
                     <Grid gutter="md">
-                      <Grid.Col span={4}>
-                        <Box>
-                          <Text size="sm" c="dimmed" mb={4}>Age</Text>
-                          <Text size="sm" fw={500}>{caseToView.age || 'N/A'}</Text>
-                        </Box>
-                      </Grid.Col>
-                      <Grid.Col span={4}>
-                        <Box>
-                          <Text size="sm" c="dimmed" mb={4}>Gender</Text>
-                          <Text size="sm" fw={500}>{caseToView.gender || 'N/A'}</Text>
-                        </Box>
-                      </Grid.Col>
-                      <Grid.Col span={4}>
-                        <Box>
-                          <Text size="sm" c="dimmed" mb={4}>Height</Text>
-                          <Text size="sm" fw={500}>{caseToView.height || 'N/A'}</Text>
-                        </Box>
-                      </Grid.Col>
+                      <Grid.Col span={4}><Box><Text size="sm" c="dimmed" mb={4}>Age</Text><Text size="sm" fw={500}>{caseToView.age || 'N/A'}</Text></Box></Grid.Col>
+                      <Grid.Col span={4}><Box><Text size="sm" c="dimmed" mb={4}>Gender</Text><Text size="sm" fw={500}>{caseToView.gender || 'N/A'}</Text></Box></Grid.Col>
+                      <Grid.Col span={4}><Box><Text size="sm" c="dimmed" mb={4}>Height</Text><Text size="sm" fw={500}>{caseToView.height || 'N/A'}</Text></Box></Grid.Col>
                     </Grid>
-
-                    <Box>
-                      <Text size="sm" c="dimmed" mb={4}>Weight</Text>
-                      <Text size="sm" fw={500}>{caseToView.weight || 'N/A'}</Text>
-                    </Box>
+                    <Box><Text size="sm" c="dimmed" mb={4}>Weight</Text><Text size="sm" fw={500}>{caseToView.weight || 'N/A'}</Text></Box>
                   </Stack>
                 ) : (
                   <Stack gap="md">
                     <Grid gutter="md">
-                      <Grid.Col span={6}>
-                        <Box>
-                          <Text size="sm" c="dimmed" mb={4}>Brand</Text>
-                          <Text size="sm" fw={500}>{caseToView.brand || 'N/A'}</Text>
-                        </Box>
-                      </Grid.Col>
-                      <Grid.Col span={6}>
-                        <Box>
-                          <Text size="sm" c="dimmed" mb={4}>Model</Text>
-                          <Text size="sm" fw={500}>{caseToView.model || 'N/A'}</Text>
-                        </Box>
-                      </Grid.Col>
+                      <Grid.Col span={6}><Box><Text size="sm" c="dimmed" mb={4}>Brand</Text><Text size="sm" fw={500}>{caseToView.brand || 'N/A'}</Text></Box></Grid.Col>
+                      <Grid.Col span={6}><Box><Text size="sm" c="dimmed" mb={4}>Model</Text><Text size="sm" fw={500}>{caseToView.model || 'N/A'}</Text></Box></Grid.Col>
                     </Grid>
-
                     <Grid gutter="md">
-                      <Grid.Col span={4}>
-                        <Box>
-                          <Text size="sm" c="dimmed" mb={4}>Color</Text>
-                          <Text size="sm" fw={500}>{caseToView.color || 'N/A'}</Text>
-                        </Box>
-                      </Grid.Col>
-                      <Grid.Col span={4}>
-                        <Box>
-                          <Text size="sm" c="dimmed" mb={4}>Submodel</Text>
-                          <Text size="sm" fw={500}>{caseToView.submodel || 'N/A'}</Text>
-                        </Box>
-                      </Grid.Col>
-                      <Grid.Col span={4}>
-                        <Box>
-                          <Text size="sm" c="dimmed" mb={4}>Plate Type</Text>
-                          <Text size="sm" fw={500}>{caseToView.plateType || 'N/A'}</Text>
-                        </Box>
-                      </Grid.Col>
+                      <Grid.Col span={4}><Box><Text size="sm" c="dimmed" mb={4}>Color</Text><Text size="sm" fw={500}>{caseToView.color || 'N/A'}</Text></Box></Grid.Col>
+                      <Grid.Col span={4}><Box><Text size="sm" c="dimmed" mb={4}>Submodel</Text><Text size="sm" fw={500}>{caseToView.submodel || 'N/A'}</Text></Box></Grid.Col>
+                      <Grid.Col span={4}><Box><Text size="sm" c="dimmed" mb={4}>Plate Type</Text><Text size="sm" fw={500}>{caseToView.plateType || 'N/A'}</Text></Box></Grid.Col>
                     </Grid>
-
-                    <Box>
-                      <Text size="sm" c="dimmed" mb={4}>License Plate</Text>
-                      <Text size="sm" fw={500}>{caseToView.plateNumber || 'N/A'}</Text>
-                    </Box>
-
+                    <Box><Text size="sm" c="dimmed" mb={4}>License Plate</Text><Text size="sm" fw={500}>{caseToView.plateNumber || 'N/A'}</Text></Box>
                     {caseToView.region && caseToView.code && (
-                      <Box>
-                        <Text size="sm" c="dimmed" mb={4}>Region & Code</Text>
-                        <Text size="sm" fw={500}>{caseToView.region} - {caseToView.code}</Text>
-                      </Box>
+                      <Box><Text size="sm" c="dimmed" mb={4}>Region & Code</Text><Text size="sm" fw={500}>{caseToView.region} - {caseToView.code}</Text></Box>
                     )}
                   </Stack>
                 )}
@@ -1912,45 +1770,19 @@ export default function ReportedCasesPage() {
                       <Text size="sm" fw={500}>{caseToView.location || 'Not specified'}</Text>
                     </Flex>
                   </Box>
-
-                  <Box>
-                    <Text size="sm" c="dimmed" mb={4}>Last Seen Date</Text>
-                    <Text size="sm" fw={500}>{caseToView.lastSeenDate || 'Not specified'}</Text>
-                  </Box>
-
-                  <Box>
-                    <Text size="sm" c="dimmed" mb={4}>Last Seen Time</Text>
-                    <Text size="sm" fw={500}>{caseToView.lastSeenTime || 'Not specified'}</Text>
-                  </Box>
-
+                  <Box><Text size="sm" c="dimmed" mb={4}>Last Seen Date</Text><Text size="sm" fw={500}>{caseToView.lastSeenDate || 'Not specified'}</Text></Box>
+                  <Box><Text size="sm" c="dimmed" mb={4}>Last Seen Time</Text><Text size="sm" fw={500}>{caseToView.lastSeenTime || 'Not specified'}</Text></Box>
                   <Divider color={getBg(colorScheme, theme.colors.gray[2], theme.colors.dark[5])} />
-
-                  <Box>
-                    <Text size="sm" c="dimmed" mb={4}>Contact Name</Text>
-                    <Text size="sm" fw={500}>{caseToView.contactName || 'N/A'}</Text>
-                  </Box>
-
-                  <Box>
-                    <Text size="sm" c="dimmed" mb={4}>Contact Phone</Text>
-                    <Text size="sm" fw={500}>{caseToView.contactPhone || 'N/A'}</Text>
-                  </Box>
-
-                  <Box>
-                    <Text size="sm" c="dimmed" mb={4}>Contact Email</Text>
-                    <Text size="sm" fw={500}>{caseToView.contactEmail || 'N/A'}</Text>
-                  </Box>
-
+                  <Box><Text size="sm" c="dimmed" mb={4}>Contact Name</Text><Text size="sm" fw={500}>{caseToView.contactName || 'N/A'}</Text></Box>
+                  <Box><Text size="sm" c="dimmed" mb={4}>Contact Phone</Text><Text size="sm" fw={500}>{caseToView.contactPhone || 'N/A'}</Text></Box>
+                  <Box><Text size="sm" c="dimmed" mb={4}>Contact Email</Text><Text size="sm" fw={500}>{caseToView.contactEmail || 'N/A'}</Text></Box>
                   {caseToView.telegramUsername && (
-                    <Box>
-                      <Text size="sm" c="dimmed" mb={4}>Telegram Username</Text>
-                      <Text size="sm" fw={500}>@{caseToView.telegramUsername}</Text>
-                    </Box>
+                    <Box><Text size="sm" c="dimmed" mb={4}>Telegram Username</Text><Text size="sm" fw={500}>@{caseToView.telegramUsername}</Text></Box>
                   )}
                 </Stack>
               </Tabs.Panel>
             </Tabs>
 
-            {/* Action Buttons */}
             <Flex gap="sm" justify="flex-end" mt="lg">
               <Button
                 variant="light"
@@ -1972,7 +1804,6 @@ export default function ReportedCasesPage() {
               </Button>
             </Flex>
 
-            {/* Read-only information */}
             <Paper
               withBorder
               p="md"
@@ -2034,7 +1865,6 @@ export default function ReportedCasesPage() {
       >
         {caseToEdit && (
           <Box>
-            {/* Case Type Badge */}
             <Flex justify="space-between" align="center" mb="lg">
               <Badge
                 color={caseToEdit.type === 'Person' ? 'grape' : 'orange'}
@@ -2065,7 +1895,7 @@ export default function ReportedCasesPage() {
                 </Tabs.Tab>
               </Tabs.List>
 
-              {/* Basic Information Tab */}
+              {/* Basic Info Tab (editable) */}
               <Tabs.Panel value="basic">
                 <Stack gap="md">
                   <Grid gutter="md">
@@ -2155,7 +1985,7 @@ export default function ReportedCasesPage() {
                 </Stack>
               </Tabs.Panel>
 
-              {/* Person/Vehicle Details Tab */}
+              {/* Person/Vehicle Details Tab (editable) */}
               <Tabs.Panel value={caseToEdit.type === 'Person' ? 'person' : 'vehicle'}>
                 {caseToEdit.type === 'Person' ? (
                   <Stack gap="md">
@@ -2465,7 +2295,7 @@ export default function ReportedCasesPage() {
                 )}
               </Tabs.Panel>
 
-              {/* Location & Contact Tab */}
+              {/* Location & Contact Tab (editable) */}
               <Tabs.Panel value="location">
                 <Stack gap="md">
                   <TextInput
@@ -2485,7 +2315,6 @@ export default function ReportedCasesPage() {
                       label: { color: getBg(colorScheme, 'black', theme.colors.gray[3]) },
                     }}
                   />
-
                   <Grid gutter="md">
                     <Grid.Col span={6}>
                       <TextInput
@@ -2522,9 +2351,7 @@ export default function ReportedCasesPage() {
                       />
                     </Grid.Col>
                   </Grid>
-
                   <Divider color={getBg(colorScheme, theme.colors.gray[2], theme.colors.dark[5])} />
-
                   <Grid gutter="md">
                     <Grid.Col span={6}>
                       <TextInput
@@ -2598,7 +2425,6 @@ export default function ReportedCasesPage() {
               </Tabs.Panel>
             </Tabs>
 
-            {/* Action Buttons */}
             <Flex gap="sm" justify="flex-end" mt="lg">
               <Button
                 variant="light"
@@ -2622,7 +2448,6 @@ export default function ReportedCasesPage() {
               </Button>
             </Flex>
 
-            {/* Read-only information */}
             <Paper
               withBorder
               p="md"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Box,
@@ -83,16 +83,63 @@ export default function RegisterBeltPage() {
   });
 
   // Location & geofence state
-  const [selectedLocation, setSelectedLocation] = useState(null); // { lat, lng, address }
+  const [selectedLocation, setSelectedLocation] = useState(null);
   const [enableGeofence, setEnableGeofence] = useState(false);
-  const [geofenceRadius, setGeofenceRadius] = useState(100); // meters
+  const [geofenceRadius, setGeofenceRadius] = useState(100);
 
   const [submitting, setSubmitting] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
 
   const getBg = (light, dark) => (colorScheme === "dark" ? dark : light);
   const headerBg = getBg("white", theme.colors.dark[6]);
   const borderColor = getBg("#E9ECEF", theme.colors.dark[5]);
   const mainBg = getBg("white", theme.colors.dark[7]);
+
+  // ----------------- LOGGING FUNCTION -----------------
+  const createActionLog = async (action, details = {}) => {
+    try {
+      if (!currentUser) return;
+      let ip = "unknown";
+      try {
+        const ipRes = await fetch("https://api.ipify.org?format=json");
+        const ipData = await ipRes.json();
+        ip = ipData.ip;
+      } catch (e) { /* ignore */ }
+
+      const logEntry = {
+        userId: currentUser.id,
+        userEmail: currentUser.email,
+        action,
+        ...details,
+        timestamp: new Date().toISOString(),
+        userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "unknown",
+        ipAddress: ip,
+      };
+
+      await fetch("http://localhost:3001/logs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(logEntry),
+      });
+    } catch (error) {
+      console.error("Action log failed:", error);
+      // Non‑blocking
+    }
+  };
+  // -----------------------------------------------------
+
+  // Load current user and log page view
+  useEffect(() => {
+    const userData = localStorage.getItem("currentUser");
+    if (userData) {
+      const user = JSON.parse(userData);
+      setCurrentUser(user);
+      createActionLog("register_belt_page_view");
+    } else {
+      // If no user, redirect to login (optional)
+      router.push("/login");
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleLocationSelect = (lat, lng, address) => {
     setSelectedLocation({ lat, lng, address });
@@ -139,6 +186,14 @@ export default function RegisterBeltPage() {
         body: JSON.stringify(newDevice),
       });
       if (!res.ok) throw new Error("Failed to register");
+
+      // Log successful registration
+      createActionLog("device_registered", {
+        deviceName: form.name,
+        serialNumber: form.serialNumber,
+        hasGeofence: enableGeofence,
+      });
+
       notifications.show({
         title: "Success",
         message: `${form.name} has been registered with initial location${enableGeofence ? " and geofence" : ""}.`,
@@ -158,9 +213,15 @@ export default function RegisterBeltPage() {
     }
   };
 
+  const handleLogout = () => {
+    createActionLog("logout", { fromPage: "register-belt" });
+    localStorage.removeItem("currentUser");
+    router.push("/login");
+  };
+
   return (
     <Box bg={mainBg} style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      {/* Header (same as before) */}
+      {/* Header */}
       <Box
         bg={headerBg}
         py="sm"
@@ -193,10 +254,10 @@ export default function RegisterBeltPage() {
                     <Group gap="sm">
                       <Box ta="right" visibleFrom="xs">
                         <Text fw={800} size="md">
-                          User
+                          {currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : "User"}
                         </Text>
                         <Text size="xs" c="dimmed">
-                          Personal account
+                          {currentUser?.role || "Personal account"}
                         </Text>
                       </Box>
                       <Avatar src={null} alt="User" color="blue" size="md" radius="xl" />
@@ -218,10 +279,7 @@ export default function RegisterBeltPage() {
                     <Menu.Item
                       color="red"
                       leftSection={<IconLogout size={20} />}
-                      onClick={() => {
-                        localStorage.removeItem("currentUser");
-                        router.push("/login");
-                      }}
+                      onClick={handleLogout}
                     >
                       Logout
                     </Menu.Item>

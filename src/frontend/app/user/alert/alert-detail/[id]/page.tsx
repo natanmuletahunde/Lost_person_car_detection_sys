@@ -152,6 +152,9 @@ export default function AlertDetailPage() {
   const markersRef = useRef([]);
   const itemsPerPage = 10;
 
+  // ========== ADDED: Current user state for logging ==========
+  const [currentUser, setCurrentUser] = useState(null);
+
   // Dynamic colors
   const mainBg = getBg(colorScheme, 'white', theme.colors.dark[7]);
   const headerBg = getBg(colorScheme, 'white', theme.colors.dark[6]);
@@ -166,6 +169,55 @@ export default function AlertDetailPage() {
   const backButtonBg = '#399afc';
   const selectedRowBg = getBg(colorScheme, '#f0f9ff', theme.colors.blue[9] + '30');
   const selectedRowBorder = '#3b82f6';
+
+  // ========== ADDED: Load current user from localStorage ==========
+  useEffect(() => {
+    const userData = localStorage.getItem('currentUser');
+    if (userData) {
+      try {
+        setCurrentUser(JSON.parse(userData));
+      } catch (e) { /* ignore */ }
+    }
+  }, []);
+
+  // ========== ADDED: Logging function ==========
+  const createActionLog = async (action, details = {}) => {
+    try {
+      if (!currentUser) return;
+      let ip = 'unknown';
+      try {
+        const ipRes = await fetch('https://api.ipify.org?format=json');
+        const ipData = await ipRes.json();
+        ip = ipData.ip;
+      } catch (e) { /* ignore */ }
+
+      const logEntry = {
+        userId: currentUser.id,
+        userEmail: currentUser.email,
+        action,
+        ...details,
+        timestamp: new Date().toISOString(),
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+        ipAddress: ip,
+      };
+
+      await fetch('http://localhost:3001/logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(logEntry),
+      });
+    } catch (error) {
+      console.error('Logging failed:', error);
+      // Non-blocking
+    }
+  };
+
+  // ========== ADDED: Logout handler ==========
+  const handleLogout = () => {
+    createActionLog('logout', { fromPage: 'alert_detail' });
+    localStorage.removeItem('currentUser');
+    router.push('/authentication/login');
+  };
 
   useEffect(() => {
     const fetchAlertAndSightings = async () => {
@@ -232,6 +284,14 @@ export default function AlertDetailPage() {
         if (detections.length > 0) {
           setSelectedDetection(detections[0]);
         }
+
+        // ========== ADDED: Log page view after successful load ==========
+        createActionLog('alert_detail_view', {
+          alertId: alert.id,
+          alertCode: alert.code,
+          alertType: alert.type,
+          sightingCount: detections.length,
+        });
 
       } catch (err) {
         console.error('Error fetching data:', err);
@@ -352,8 +412,14 @@ export default function AlertDetailPage() {
   );
   const totalPages = Math.ceil(detectionHistory.length / itemsPerPage);
 
+  // ========== ADDED: Log when a detection is selected ==========
   const handleDetectionClick = (detection) => {
     setSelectedDetection(detection);
+    createActionLog('detection_selected', {
+      detectionId: detection.id,
+      detectionName: detection.name,
+      alertId: alertData.id,
+    });
   };
 
   const handleRowClick = (detection, e) => {
@@ -362,9 +428,30 @@ export default function AlertDetailPage() {
     }
   };
 
+  // ========== ADDED: Log when navigating to detection detail ==========
   const handleArrowClick = (detection, e) => {
     e.stopPropagation();
+    createActionLog('detection_detail_navigate', {
+      detectionId: detection.id,
+      alertId: alertData.id,
+    });
     router.push(`/user/alert/alert-detail/${params.id}/detection/${detection.id}`);
+  };
+
+  // ========== ADDED: Log export and filter clicks ==========
+  const handleExportClick = () => {
+    createActionLog('export_clicked', { alertId: alertData.id });
+    // actual export logic here
+  };
+
+  const handleFilterClick = () => {
+    createActionLog('filter_clicked', { alertId: alertData.id });
+    // actual filter logic here
+  };
+
+  const handleDownloadReport = () => {
+    createActionLog('download_report_clicked', { alertId: alertData.id });
+    // actual download logic here
   };
 
   return (
@@ -425,7 +512,7 @@ export default function AlertDetailPage() {
                     <Group gap="sm">
                       <Box ta="right" visibleFrom="xs">
                         <Text fw={800} size="md">
-                          Feleke
+                          {currentUser ? `${currentUser.firstName}` : "User"}
                         </Text>
                         <Text size="xs" c="dimmed">
                           Personal account
@@ -481,8 +568,7 @@ export default function AlertDetailPage() {
                   <Menu.Item
                     color="red"
                     leftSection={<IconLogout size={20} />}
-                    component={Link}
-                    href="/authentication/login"
+                    onClick={handleLogout}   {/* ========== CHANGED to custom handler ========== */}
                   >
                     Logout
                   </Menu.Item>
@@ -545,10 +631,22 @@ export default function AlertDetailPage() {
               </Group>
             </Box>
             <Group>
-              <Button leftSection={<IconDownload size={18} />} variant="light" size="sm" visibleFrom="xs">
+              <Button 
+                leftSection={<IconDownload size={18} />} 
+                variant="light" 
+                size="sm" 
+                visibleFrom="xs"
+                onClick={handleExportClick}   {/* ========== CHANGED to custom handler ========== */}
+              >
                 Export
               </Button>
-              <Button leftSection={<IconFilter size={18} />} variant="light" size="sm" visibleFrom="xs">
+              <Button 
+                leftSection={<IconFilter size={18} />} 
+                variant="light" 
+                size="sm" 
+                visibleFrom="xs"
+                onClick={handleFilterClick}   {/* ========== CHANGED to custom handler ========== */}
+              >
                 Filter
               </Button>
             </Group>
@@ -831,11 +929,16 @@ export default function AlertDetailPage() {
             variant="light"
             color="gray"
             leftSection={<IconArrowLeft size={18} />}
-            onClick={() => router.push("/alert")}
+            onClick={() => router.push("/user/alert")}
           >
             Back to Alerts
           </Button>
-          <Button size="lg" color="blue" leftSection={<IconDownload size={18} />}>
+          <Button 
+            size="lg" 
+            color="blue" 
+            leftSection={<IconDownload size={18} />}
+            onClick={handleDownloadReport}   {/* ========== CHANGED to custom handler ========== */}
+          >
             Download Full Report
           </Button>
         </Group>

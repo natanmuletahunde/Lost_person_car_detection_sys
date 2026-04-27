@@ -54,7 +54,6 @@ import { notifications } from "@mantine/notifications";
 // Leaflet imports
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-// Fix Leaflet default icon paths (required for webpack)
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 const DefaultIcon = L.icon({
@@ -86,6 +85,7 @@ export default function SingleDetectionDetailPage() {
   const [error, setError] = useState(null);
   const [isOwner, setIsOwner] = useState(false);
   const [isFalseAlert, setIsFalseAlert] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   
   const mapRef = useRef(null);
   const leafletMap = useRef(null);
@@ -96,14 +96,51 @@ export default function SingleDetectionDetailPage() {
   const headerBg = getBg(colorScheme, 'white', theme.colors.dark[6]);
   const borderColor = getBg(colorScheme, '#E9ECEF', theme.colors.dark[5]);
   const paperBg = getBg(colorScheme, 'white', theme.colors.dark[6]);
-  const lightBlueBg = getBg(colorScheme, '#f0f9ff', theme.colors.blue[9] + '40');
-  const mapGradient = colorScheme === 'dark'
-    ? 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%)'
-    : 'linear-gradient(135deg, #dbeafe 0%, #93c5fd 100%)';
-  const mapBorder = getBg(colorScheme, '#bfdbfe', theme.colors.blue[8]);
-  const backButtonBg = '#399afc';
   const detectionMetadataHeaderBg = getBg(colorScheme, '#f8f9fa', theme.colors.dark[5]);
   const detectionMetadataText = getTextColor(colorScheme, '#212529', theme.colors.gray[3]);
+  const backButtonBg = '#399afc';
+
+  // Load current user from localStorage for logging
+  useEffect(() => {
+    const userData = localStorage.getItem('currentUser');
+    if (userData) {
+      try {
+        setCurrentUser(JSON.parse(userData));
+      } catch (e) { /* ignore */ }
+    }
+  }, []);
+
+  // ----------------- LOGGING FUNCTION -----------------
+  const createActionLog = async (action, details = {}) => {
+    try {
+      if (!currentUser) return;
+      let ip = 'unknown';
+      try {
+        const ipRes = await fetch('https://api.ipify.org?format=json');
+        const ipData = await ipRes.json();
+        ip = ipData.ip;
+      } catch (e) { /* ignore */ }
+
+      const logEntry = {
+        userId: currentUser.id,
+        userEmail: currentUser.email,
+        action,
+        ...details,
+        timestamp: new Date().toISOString(),
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+        ipAddress: ip,
+      };
+
+      await fetch('http://localhost:3001/logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(logEntry),
+      });
+    } catch (error) {
+      console.error('Logging failed:', error);
+    }
+  };
+  // ----------------------------------------------------
 
   // Fetch data from APIs
   useEffect(() => {
@@ -164,7 +201,7 @@ export default function SingleDetectionDetailPage() {
           date: sighting.date || new Date(sighting.reportDate).toLocaleDateString(),
           time: sighting.time || new Date(sighting.reportDate).toLocaleTimeString(),
           type: sighting.type === 'Person' ? 'Sighting' : 'Detection',
-          accuracy: '98%', // placeholder; you could compute from confidence if available
+          accuracy: '98%', // placeholder
           description: sighting.description,
           image: sighting.imagePreview,
           latitude: sighting.latitude,
@@ -189,13 +226,21 @@ export default function SingleDetectionDetailPage() {
             photos: caseData.additionalImages || (caseData.imagePreview ? [caseData.imagePreview] : []),
           },
           additionalImages: caseData.additionalImages || [],
-          detectionHistory: [], // not needed here
-          accuracy: '98%', // placeholder
+          detectionHistory: [],
+          accuracy: '98%',
         };
 
         setDetectionData(transformedDetection);
         setAlertData(transformedCase);
         setError(null);
+
+        // LOG PAGE VIEW after successful load
+        createActionLog('detection_detail_view', {
+          caseId,
+          detectionId,
+          name: transformedDetection.name,
+          type: transformedDetection.type,
+        });
       } catch (err) {
         console.error('Error fetching detection detail:', err);
         setError(err.message);
@@ -217,26 +262,21 @@ export default function SingleDetectionDetailPage() {
   useEffect(() => {
     if (!detectionData || !mapRef.current) return;
 
-    // Clear previous map instance
     if (leafletMap.current) {
       leafletMap.current.remove();
       leafletMap.current = null;
     }
 
-    // Use actual coordinates from detectionData, or fallback to default
     const lat = detectionData.latitude ? parseFloat(detectionData.latitude) : 9.03;
     const lng = detectionData.longitude ? parseFloat(detectionData.longitude) : 38.74;
 
-    // Create map
     const map = L.map(mapRef.current).setView([lat, lng], 15);
     leafletMap.current = map;
 
-    // Add tile layer
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
 
-    // Add marker
     const marker = L.marker([lat, lng])
       .bindPopup(`
         <b>${detectionData.name}</b><br>
@@ -248,7 +288,6 @@ export default function SingleDetectionDetailPage() {
     marker.openPopup();
     markerRef.current = marker;
 
-    // Cleanup on unmount
     return () => {
       if (leafletMap.current) {
         leafletMap.current.remove();
@@ -257,6 +296,7 @@ export default function SingleDetectionDetailPage() {
     };
   }, [detectionData]);
 
+  // Handle confirmation selection (just sets state)
   const handleConfirmation = (type) => {
     if (type === 'owner') {
       setIsOwner(true);
@@ -265,8 +305,46 @@ export default function SingleDetectionDetailPage() {
       setIsOwner(false);
       setIsFalseAlert(true);
     }
-    // Here you would send this to your backend
-    console.log(`Confirmation: ${type}`);
+    // No logging here – logging will happen on Submit
+  };
+
+  // Handle submit of response
+  const handleSubmitResponse = () => {
+    if (!isOwner && !isFalseAlert) return;
+
+    if (isOwner) {
+      createActionLog('detection_owner_confirmed', {
+        caseId: params.id,
+        detectionId: params.detection_id,
+      });
+      console.log('Owner confirmed');
+      // Future: send to backend
+    } else if (isFalseAlert) {
+      createActionLog('detection_false_alert', {
+        caseId: params.id,
+        detectionId: params.detection_id,
+      });
+      console.log('False alert reported');
+      // Future: send to backend
+    }
+
+    // Optional notification
+    notifications.show({
+      title: 'Response Submitted',
+      message: isOwner ? 'You confirmed ownership.' : 'You reported a false alert.',
+      color: isOwner ? 'green' : 'red',
+      icon: <IconCheck size={16} />,
+    });
+  };
+
+  // Handle export details
+  const handleExport = () => {
+    createActionLog('detection_export', {
+      caseId: params.id,
+      detectionId: params.detection_id,
+    });
+    // Actual export logic could go here
+    console.log('Exporting details...');
   };
 
   if (loading) {
@@ -306,7 +384,7 @@ export default function SingleDetectionDetailPage() {
         flexDirection: "column",
       }}
     >
-      {/* Header */}
+      {/* Header - unchanged */}
       <Box
         bg={headerBg}
         py="sm"
@@ -409,8 +487,11 @@ export default function SingleDetectionDetailPage() {
                   <Menu.Item
                     color="red"
                     leftSection={<IconLogout size={20} />}
-                    component={Link}
-                    href="/login"
+                    onClick={() => {
+                      // Optional: log logout
+                      localStorage.removeItem('currentUser');
+                      router.push('/login');
+                    }}
                   >
                     Logout
                   </Menu.Item>
@@ -421,7 +502,7 @@ export default function SingleDetectionDetailPage() {
         </Container>
       </Box>
 
-      {/* Back Navigation */}
+      {/* Back Navigation - unchanged */}
       <Box style={{ padding: "24px 0 16px 0" }}>
         <Container size="xl">
           <Group>
@@ -457,7 +538,7 @@ export default function SingleDetectionDetailPage() {
         </Box>
 
         <Grid gutter="xl">
-          {/* LEFT COLUMN: Map */}
+          {/* LEFT COLUMN: Map - unchanged */}
           <Grid.Col span={{ base: 12, md: 7 }}>
             <Paper withBorder radius="md" style={{ height: "500px", overflow: "hidden" }}> 
               <Box
@@ -491,7 +572,7 @@ export default function SingleDetectionDetailPage() {
           {/* RIGHT COLUMN: Info Cards */}
           <Grid.Col span={{ base: 12, md: 5 }}>
             <Stack gap="lg">
-              {/* Accuracy Card */}
+              {/* Accuracy Card – unchanged */}
               <Paper 
                 withBorder 
                 radius="md"
@@ -533,7 +614,7 @@ export default function SingleDetectionDetailPage() {
                 </Box>
               </Paper>
 
-              {/* Category Card */}
+              {/* Category Card – unchanged */}
               <Paper 
                 withBorder 
                 radius="md"
@@ -607,7 +688,7 @@ export default function SingleDetectionDetailPage() {
                 </Box>
               </Paper>
 
-              {/* Registered Location Card */}
+              {/* Registered Location Card – unchanged */}
               <Paper 
                 withBorder 
                 radius="md"
@@ -646,7 +727,7 @@ export default function SingleDetectionDetailPage() {
                 </Box>
               </Paper>
 
-              {/* Registered Date Card */}
+              {/* Registered Date Card – unchanged */}
               <Paper 
                 withBorder 
                 radius="md"
@@ -700,7 +781,7 @@ export default function SingleDetectionDetailPage() {
                 </Box>
               </Paper>
 
-              {/* Captured Media Card */}
+              {/* Captured Media Card – unchanged */}
               <Paper 
                 withBorder 
                 radius="md"
@@ -795,7 +876,7 @@ export default function SingleDetectionDetailPage() {
                 </Box>
               </Paper>
 
-              {/* Confirmation Card */}
+              {/* Confirmation Card – modified for logging */}
               <Paper 
                 withBorder 
                 radius="md"
@@ -913,6 +994,7 @@ export default function SingleDetectionDetailPage() {
                         padding: "12px",
                         borderRadius: "8px",
                       }}
+                      onClick={handleSubmitResponse}
                     >
                       {isOwner ? "✅ Confirm Ownership" : 
                        isFalseAlert ? "❌ Report False Alert" : 
@@ -925,7 +1007,7 @@ export default function SingleDetectionDetailPage() {
           </Grid.Col>
         </Grid>
 
-        {/* Detection Metadata */}
+        {/* Detection Metadata - unchanged */}
         <Paper withBorder radius="md" mt="xl" bg={paperBg}>
           <Box
             p="md"
@@ -969,7 +1051,7 @@ export default function SingleDetectionDetailPage() {
           </Box>
         </Paper>
 
-        {/* Action Buttons */}
+        {/* Action Buttons – modified for logging */}
         <Group justify="space-between" mt="xl">
           <Button
             variant="light"
@@ -985,13 +1067,14 @@ export default function SingleDetectionDetailPage() {
               variant="light"
               color="blue"
               leftSection={<IconDownload size={18} />}
+              onClick={handleExport}
             >
               Export Details
             </Button>
             <Button
               color="blue"
               leftSection={<IconCheck size={18} />}
-              onClick={() => handleConfirmation(isOwner ? 'owner' : 'false')}
+              onClick={handleSubmitResponse}
               disabled={!isOwner && !isFalseAlert}
             >
               Submit Response

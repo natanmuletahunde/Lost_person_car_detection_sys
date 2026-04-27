@@ -163,6 +163,42 @@ export default function ReportSightingPage() {
     }
   };
 
+  // ********** LOGGING FUNCTION **********
+  const createSightingLog = async (sightingData) => {
+    try {
+      if (!currentUser) return;
+      let ip = 'unknown';
+      try {
+        const ipRes = await fetch('https://api.ipify.org?format=json');
+        const ipData = await ipRes.json();
+        ip = ipData.ip;
+      } catch (e) { /* ignore */ }
+
+      const logEntry = {
+        userId: currentUser.id,
+        userEmail: currentUser.email,
+        action: 'sighting_submitted',
+        sightingType: sightingData.type,
+        description: sightingData.name || sightingData.plateNumber || 'Unknown',
+        location: sightingData.location,
+        originalCaseId: sightingData.originalCaseId || null,
+        timestamp: new Date().toISOString(),
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+        ipAddress: ip,
+      };
+
+      await fetch('http://localhost:3001/logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(logEntry),
+      });
+    } catch (error) {
+      console.error('Logging failed:', error);
+      // Non-blocking
+    }
+  };
+  // **************************************
+
   const handleSubmit = async () => {
     const required = ['type', 'location', 'date', 'time'];
     if (formValues.type === 'Person') required.push('name');
@@ -202,7 +238,10 @@ export default function ReportSightingPage() {
     };
 
     try {
-      await saveToJsonServer(payload);
+      const savedSighting = await saveToJsonServer(payload);
+      // 🔹 LOG SUCCESSFUL SUBMISSION
+      createSightingLog(payload).catch(err => console.error('Log error:', err));
+
       notifications.show({
         title: 'Thank you!',
         message: 'Sighting submitted successfully.',
@@ -211,6 +250,7 @@ export default function ReportSightingPage() {
       });
       router.push('/');
     } catch (err) {
+      // We don't log failures here, but you could add it if needed
       notifications.show({
         title: 'Submission Failed',
         message: 'Failed to submit sighting. Please try again.',

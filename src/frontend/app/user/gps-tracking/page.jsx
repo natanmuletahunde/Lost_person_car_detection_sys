@@ -57,16 +57,52 @@ export default function GpsTrackingPage() {
   const headerBg = getBg(colorScheme, 'white', theme.colors.dark[6]);
   const borderColor = getBg(colorScheme, '#E9ECEF', theme.colors.dark[5]);
 
-  // Check authentication
+  // ------------------ LOGGING FUNCTION ------------------
+  const createActionLog = async (action, details = {}) => {
+    try {
+      if (!currentUser) return;
+      let ip = 'unknown';
+      try {
+        const ipRes = await fetch('https://api.ipify.org?format=json');
+        const ipData = await ipRes.json();
+        ip = ipData.ip;
+      } catch (e) { /* ignore */ }
+
+      const logEntry = {
+        userId: currentUser.id,
+        userEmail: currentUser.email,
+        action,
+        ...details,
+        timestamp: new Date().toISOString(),
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+        ipAddress: ip,
+      };
+
+      await fetch('http://localhost:3001/logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(logEntry),
+      });
+    } catch (error) {
+      console.error('Action log failed:', error);
+      // Non‑blocking
+    }
+  };
+  // -------------------------------------------------------
+
+  // Check authentication and log page view
   useEffect(() => {
     const userData = localStorage.getItem('currentUser');
     if (!userData) {
       router.push('/login');
       return;
     }
-    setCurrentUser(JSON.parse(userData));
+    const user = JSON.parse(userData);
+    setCurrentUser(user);
     setLoading(false);
-  }, [router]);
+    // Log page view after user is set
+    createActionLog('gps_page_view');
+  }, [router]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) {
     return (
@@ -83,6 +119,12 @@ export default function GpsTrackingPage() {
       </Box>
     );
   }
+
+  const handleLogout = () => {
+    createActionLog('logout', { fromPage: 'gps-tracking' });
+    localStorage.removeItem('currentUser');
+    router.push('/login');
+  };
 
   return (
     <Box
@@ -118,7 +160,7 @@ export default function GpsTrackingPage() {
               />
             </Link>
 
-            {/* Search Bar - Hidden on very small screens or shown as icon? Keep as is but shrink */}
+            {/* Search Bar */}
             {!isMobile && (
               <TextInput
                 placeholder="Search..."
@@ -181,10 +223,7 @@ export default function GpsTrackingPage() {
                     <Menu.Item
                       color="red"
                       leftSection={<IconLogout size={18} />}
-                      onClick={() => {
-                        localStorage.removeItem('currentUser');
-                        router.push('/login');
-                      }}
+                      onClick={handleLogout}
                     >
                       Logout
                     </Menu.Item>
@@ -196,7 +235,7 @@ export default function GpsTrackingPage() {
         </Container>
       </Box>
 
-      {/* Full‑width content area - no horizontal padding */}
+      {/* Full‑width content area */}
       <Box
         style={{
           flex: 1,
@@ -206,7 +245,7 @@ export default function GpsTrackingPage() {
           padding: isMobile ? '8px' : '16px',
         }}
       >
-        {/* Title row with icon - responsive margins */}
+        {/* Title row */}
         <Container size="xl" px={0} mb="md">
           <Flex direction={isMobile ? 'column' : 'row'} align={isMobile ? 'flex-start' : 'center'} gap="xs">
             <IconGps size={28} color="#2f80ed" />

@@ -60,7 +60,6 @@ const signupSchema = z.object({
 export default function SignupPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isMobile = useMediaQuery('(max-width: 576px)');
-  const isTablet = useMediaQuery('(max-width: 768px)');
   const theme = useMantineTheme();
   const { colorScheme } = useMantineColorScheme();
   const router = useRouter();
@@ -157,29 +156,25 @@ export default function SignupPage() {
       const userId = uuidv4();
       const createdAt = new Date().toISOString();
 
-      // Prepare user data for API
-      const userData = {
+      // Prepare user data for API (remove confirmPassword)
+      const { confirmPassword, ...userDataToSave } = {
         id: userId,
         ...data,
-        // Remove confirmPassword from stored data
         confirmPassword: undefined,
         createdAt,
         updatedAt: createdAt,
         isActive: true,
-        role: 'user', // Default role
+        role: 'user',
       };
 
-      // Remove confirmPassword from the object
-      const { confirmPassword, ...userDataToSave } = userData;
-
-      // Send POST request to JSON Server
-    //   const response = await fetch('http://localhost:3001/users', {
-    //     method: 'POST',
-    //     headers: {
-    //       'Content-Type': 'application/json',
-    //     },
-    //     body: JSON.stringify(userDataToSave),
-    //   });
+      // ✅ Uncommented user creation fetch
+      const response = await fetch('http://localhost:3001/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userDataToSave),
+      });
 
       if (!response.ok) {
         throw new Error('Failed to create account');
@@ -187,7 +182,7 @@ export default function SignupPage() {
 
       const result = await response.json();
 
-      // Log the signup
+      // Log the signup with the newly created user's ID
       await createSignupLog(result).catch(err => console.error('Signup log error:', err));
 
       showNotification(

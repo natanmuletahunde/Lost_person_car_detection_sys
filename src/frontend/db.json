@@ -325,10 +325,10 @@
       "phone": "+251911111111",
       "password": "User@1111",
       "createdAt": "2026-02-05T06:52:23.735Z",
-      "updatedAt": "2026-04-07T21:38:29.252Z",
+      "updatedAt": "2026-04-21T12:32:47.057Z",
       "isActive": true,
       "role": "user",
-      "lastLogin": "2026-04-07T21:38:29.252Z",
+      "lastLogin": "2026-04-21T12:32:47.057Z",
       "registrations": 9,
       "hasPaidSubscription": true
     },
@@ -504,6 +504,16 @@
       "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
       "ipAddress": "196.189.123.61",
       "id": "ZcVxPkCEYqE"
+    },
+    {
+      "userId": "97a39fa6-4d93-4b98-a4e0-204c225eb368",
+      "userEmail": "User1@gmail.com",
+      "userPhone": "+251911111111",
+      "loginType": "email",
+      "loginTime": "2026-04-21T12:32:47.019Z",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "ipAddress": "196.189.123.18",
+      "id": "wjRf7W3hJ-E"
     }
   ],
   "$schema": "./node_modules/json-server/schema.json"

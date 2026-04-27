@@ -25,8 +25,8 @@ import {
   Progress,
   Collapse,
   Card,
-  Stack,     // ← added
-  Grid,      // ← added
+  Stack,
+  Grid,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import {
@@ -46,10 +46,10 @@ import {
 } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 
-// API base URL – adjust to your JSON Server endpoint
-const API_BASE_URL = "http://localhost:3001";
+// ✅ Changed base URL to port 3000
+const API_BASE_URL = "http://localhost:3000";
 
-// Helper functions (same as before)
+// Helper functions
 const getBg = (colorScheme, light, dark) => (colorScheme === "dark" ? dark : light);
 const getTextColor = (colorScheme, light, dark) => (colorScheme === "dark" ? dark : light);
 const formatDateTime = (dateString) => new Date(dateString).toLocaleString();
@@ -124,7 +124,7 @@ export default function UserListPage() {
   const [pageSize, setPageSize] = useState("10");
   const [showFilters, setShowFilters] = useState(false);
 
-  // Fetch users
+  // Fetch users from json-server
   const fetchUsers = async () => {
     try {
       setLoading(true);

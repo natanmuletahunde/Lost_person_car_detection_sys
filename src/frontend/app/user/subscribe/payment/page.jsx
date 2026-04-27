@@ -51,7 +51,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Helper to get dynamic background/color values
+// Helper
 const getBg = (colorScheme, light, dark) =>
   colorScheme === "dark" ? dark : light;
 const getTextColor = (colorScheme, light, dark) =>
@@ -71,30 +71,33 @@ export default function PaymentPage() {
   const [showValidation, setShowValidation] = useState(false);
   const [activeStep, setActiveStep] = useState(1);
 
-  // Get plan from URL
+  // Plan from URL
   const planType = searchParams.get("plan") || "annual";
   const [selectedPlan, setSelectedPlan] = useState(planType);
 
-  // Payment method state
+  // Payment method
   const [paymentMethod, setPaymentMethod] = useState("bank");
   const [billedTo, setBilledTo] = useState("");
   const [selectedBank, setSelectedBank] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
-  const [paymentDate, setPaymentDate] = useState("14/11/2025 1:55 PM");
-  const [location, setLocation] = useState("Ethiopia");
+  const [paymentDate] = useState("14/11/2025 1:55 PM");
+  const [location] = useState("Ethiopia");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
-  // Credit card specific state
+  // Credit card
   const [cardNumber, setCardNumber] = useState("");
   const [cardExpiry, setCardExpiry] = useState("");
   const [cardCVC, setCardCVC] = useState("");
   const [cardholder, setCardholder] = useState("");
 
-  // Wallet specific state
+  // Wallet
   const [walletId, setWalletId] = useState("");
   const [walletPin, setWalletPin] = useState("");
 
-  // Banks list
+  // Current user for logging
+  const [currentUser, setCurrentUser] = useState(null);
+
+  // Banks
   const banks = [
     "Commercial Bank of Ethiopia",
     "Dashen Bank",
@@ -106,7 +109,7 @@ export default function PaymentPage() {
     "Wegagen Bank",
   ];
 
-  // Plan data (gradients stay the same, they look good in both modes)
+  // Plan data
   const plans = {
     monthly: {
       name: "Monthly",
@@ -139,7 +142,57 @@ export default function PaymentPage() {
 
   const currentPlan = plans[selectedPlan];
 
-  // Validation function
+  // Load user and finish loading
+  useEffect(() => {
+    const userData = localStorage.getItem("currentUser");
+    if (userData) {
+      try {
+        setCurrentUser(JSON.parse(userData));
+      } catch (e) { /* ignore */ }
+    }
+    setTimeout(() => setLoading(false), 300);
+  }, []);
+
+  // ----------------------- LOGGING -----------------------
+  const createActionLog = async (action, details = {}) => {
+    try {
+      if (!currentUser) return;
+      let ip = "unknown";
+      try {
+        const ipRes = await fetch("https://api.ipify.org?format=json");
+        const ipData = await ipRes.json();
+        ip = ipData.ip;
+      } catch (e) { /* ignore */ }
+
+      const logEntry = {
+        userId: currentUser.id,
+        userEmail: currentUser.email,
+        action,
+        ...details,
+        timestamp: new Date().toISOString(),
+        userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "unknown",
+        ipAddress: ip,
+      };
+
+      await fetch("http://localhost:3001/logs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(logEntry),
+      });
+    } catch (error) {
+      console.error("Logging failed:", error);
+    }
+  };
+
+  // Log page view when user is loaded
+  useEffect(() => {
+    if (currentUser) {
+      createActionLog("payment_page_view", { plan: selectedPlan });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser, selectedPlan]);
+
+  // Validation
   const isFormValid = () => {
     if (!billedTo.trim()) return false;
     if (!acceptedTerms) return false;
@@ -161,10 +214,7 @@ export default function PaymentPage() {
     }
   };
 
-  useEffect(() => {
-    setTimeout(() => setLoading(false), 300);
-  }, []);
-
+  // Step handlers
   const handleContinue = () => {
     if (!isFormValid()) {
       setShowValidation(true);
@@ -172,6 +222,11 @@ export default function PaymentPage() {
     }
     setActiveStep(2);
     setShowConfirmation(true);
+    createActionLog("payment_review", {
+      plan: selectedPlan,
+      paymentMethod,
+      billedTo,
+    });
   };
 
   const handleConfirmPayment = () => {
@@ -193,9 +248,18 @@ export default function PaymentPage() {
 
       if (pin === "1234") {
         localStorage.setItem("hasPaidSubscription", "true");
+        createActionLog("payment_successful", {
+          plan: selectedPlan,
+          amount: currentPlan.billing,
+          paymentMethod,
+        });
         alert("Payment successful! You can now register additional people.");
         router.push("/register-person");
       } else {
+        createActionLog("payment_failed", {
+          plan: selectedPlan,
+          reason: "incorrect PIN",
+        });
         alert("Incorrect PIN. Please try again.");
         setShowPinModal(true);
       }
@@ -207,11 +271,16 @@ export default function PaymentPage() {
     setShowConfirmation(false);
   };
 
+  const handleBack = () => {
+    createActionLog("payment_cancelled", { plan: selectedPlan });
+    router.back();
+  };
+
   const showError = (fieldValue) => {
     return showValidation && !fieldValue.trim();
   };
 
-  // Stepper Component with dynamic colors
+  // ---------- STEPPER ----------
   const Stepper = () => (
     <Box
       style={{
@@ -298,6 +367,7 @@ export default function PaymentPage() {
     </Box>
   );
 
+  // ---------- LEFT CONTENT (dynamic) ----------
   const renderLeftContent = () => {
     if (showConfirmation) {
       return (
@@ -374,9 +444,7 @@ export default function PaymentPage() {
                 </Text>
 
                 <Box>
-                  <Text size="sm" c="dimmed">
-                    Plan Type
-                  </Text>
+                  <Text size="sm" c="dimmed">Plan Type</Text>
                   <Group mt={4}>
                     <Badge
                       size="xl"
@@ -403,20 +471,14 @@ export default function PaymentPage() {
                       )}
                     />
                     <Box>
-                      <Text size="sm" c="dimmed">
-                        Chosen Bank
-                      </Text>
+                      <Text size="sm" c="dimmed">Chosen Bank</Text>
                       <Group mt={4} gap="xs">
                         <IconBuildingBank size={20} color="#3b82f6" />
-                        <Text fw={600} size="lg">
-                          {selectedBank}
-                        </Text>
+                        <Text fw={600} size="lg">{selectedBank}</Text>
                       </Group>
                     </Box>
                     <Box>
-                      <Text size="sm" c="dimmed">
-                        Account Number
-                      </Text>
+                      <Text size="sm" c="dimmed">Account Number</Text>
                       <Text fw={600} size="lg" mt={4}>
                         {accountNumber
                           ? `${accountNumber.slice(0, 4)}xxxxxxxxxx`
@@ -436,20 +498,14 @@ export default function PaymentPage() {
                       )}
                     />
                     <Box>
-                      <Text size="sm" c="dimmed">
-                        Card Type
-                      </Text>
+                      <Text size="sm" c="dimmed">Card Type</Text>
                       <Group mt={4} gap="xs">
                         <IconCreditCard size={20} color="#8b5cf6" />
-                        <Text fw={600} size="lg">
-                          Credit Card
-                        </Text>
+                        <Text fw={600} size="lg">Credit Card</Text>
                       </Group>
                     </Box>
                     <Box>
-                      <Text size="sm" c="dimmed">
-                        Card Number
-                      </Text>
+                      <Text size="sm" c="dimmed">Card Number</Text>
                       <Text fw={600} size="lg" mt={4}>
                         {cardNumber
                           ? `**** ${cardNumber.slice(-4)}`
@@ -469,20 +525,14 @@ export default function PaymentPage() {
                       )}
                     />
                     <Box>
-                      <Text size="sm" c="dimmed">
-                        Wallet Type
-                      </Text>
+                      <Text size="sm" c="dimmed">Wallet Type</Text>
                       <Group mt={4} gap="xs">
                         <IconWallet size={20} color="#10b981" />
-                        <Text fw={600} size="lg">
-                          Digital Wallet
-                        </Text>
+                        <Text fw={600} size="lg">Digital Wallet</Text>
                       </Group>
                     </Box>
                     <Box>
-                      <Text size="sm" c="dimmed">
-                        Wallet ID
-                      </Text>
+                      <Text size="sm" c="dimmed">Wallet ID</Text>
                       <Text fw={600} size="lg" mt={4}>
                         {walletId
                           ? `${walletId.slice(0, 4)}...${walletId.slice(-4)}`
@@ -499,11 +549,8 @@ export default function PaymentPage() {
                     theme.colors.dark[5],
                   )}
                 />
-
                 <Box>
-                  <Text size="sm" c="dimmed">
-                    Total Amount
-                  </Text>
+                  <Text size="sm" c="dimmed">Total Amount</Text>
                   <Title
                     order={1}
                     fw={900}
@@ -531,9 +578,6 @@ export default function PaymentPage() {
                 style={{
                   border: `2px solid ${getBg(colorScheme, "#e5e7eb", theme.colors.dark[5])}`,
                   transition: "all 0.3s ease",
-                  "&:hover": {
-                    transform: "translateX(-4px)",
-                  },
                 }}
               >
                 Edit Details
@@ -547,10 +591,7 @@ export default function PaymentPage() {
                   background:
                     "linear-gradient(135deg, #10b981 0%, #059669 100%)",
                   transition: "all 0.3s ease",
-                  "&:hover": {
-                    transform: "translateY(-2px)",
-                    boxShadow: "0 8px 20px rgba(16, 185, 129, 0.3)",
-                  },
+                  boxShadow: "0 8px 20px rgba(16, 185, 129, 0.3)",
                 }}
               >
                 Confirm & Pay
@@ -579,6 +620,7 @@ export default function PaymentPage() {
       );
     }
 
+    // Form view
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -612,9 +654,7 @@ export default function PaymentPage() {
           />
 
           <Box>
-            <Text fw={600} size="md" mb={4}>
-              Billed To
-            </Text>
+            <Text fw={600} size="md" mb={4}>Billed To</Text>
             <TextInput
               placeholder="Your full name"
               value={billedTo}
@@ -643,30 +683,13 @@ export default function PaymentPage() {
           </Box>
 
           <Box>
-            <Text fw={600} size="md" mb={12}>
-              Payment Method
-            </Text>
+            <Text fw={600} size="md" mb={12}>Payment Method</Text>
             <RadioGroup value={paymentMethod} onChange={setPaymentMethod}>
               <Group gap="md" mb="md" wrap="nowrap">
                 {[
-                  {
-                    value: "bank",
-                    label: "Bank",
-                    icon: IconBuildingBank,
-                    color: "#3b82f6",
-                  },
-                  {
-                    value: "wallet",
-                    label: "Wallet",
-                    icon: IconWallet,
-                    color: "#10b981",
-                  },
-                  {
-                    value: "creditCard",
-                    label: "Card",
-                    icon: IconCreditCard,
-                    color: "#8b5cf6",
-                  },
+                  { value: "bank", label: "Bank", icon: IconBuildingBank, color: "#3b82f6" },
+                  { value: "wallet", label: "Wallet", icon: IconWallet, color: "#10b981" },
+                  { value: "creditCard", label: "Card", icon: IconCreditCard, color: "#8b5cf6" },
                 ].map((method) => {
                   const IconComponent = method.icon;
                   return (
@@ -681,25 +704,15 @@ export default function PaymentPage() {
                         borderColor:
                           paymentMethod === method.value
                             ? method.color
-                            : getBg(
-                                colorScheme,
-                                "#e5e7eb",
-                                theme.colors.dark[5],
-                              ),
+                            : getBg(colorScheme, "#e5e7eb", theme.colors.dark[5]),
                         backgroundColor:
                           paymentMethod === method.value
-                            ? getBg(
-                                colorScheme,
-                                `${method.color}15`,
-                                theme.colors.dark[6],
-                              )
+                            ? getBg(colorScheme, `${method.color}15`, theme.colors.dark[6])
                             : getBg(colorScheme, "white", theme.colors.dark[7]),
                         flex: 1,
                         transition: "all 0.3s ease",
                         transform:
-                          paymentMethod === method.value
-                            ? "translateY(-4px)"
-                            : "none",
+                          paymentMethod === method.value ? "translateY(-4px)" : "none",
                         boxShadow:
                           paymentMethod === method.value
                             ? `0 8px 20px ${method.color}30`
@@ -714,11 +727,7 @@ export default function PaymentPage() {
                           color={
                             paymentMethod === method.value
                               ? method.color
-                              : getBg(
-                                  colorScheme,
-                                  "#9ca3af",
-                                  theme.colors.dark[3],
-                                )
+                              : getBg(colorScheme, "#9ca3af", theme.colors.dark[3])
                           }
                         />
                         <Text fw={500}>{method.label}</Text>
@@ -746,9 +755,7 @@ export default function PaymentPage() {
               <Grid>
                 <Grid.Col span={{ base: 12, sm: 6 }}>
                   <Box>
-                    <Text size="sm" c="dimmed">
-                      Date & Time
-                    </Text>
+                    <Text size="sm" c="dimmed">Date & Time</Text>
                     <Group gap="xs">
                       <IconCalendar size={16} color="#3b82f6" />
                       <Text fw={500}>{paymentDate}</Text>
@@ -757,9 +764,7 @@ export default function PaymentPage() {
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, sm: 6 }}>
                   <Box>
-                    <Text size="sm" c="dimmed">
-                      Location
-                    </Text>
+                    <Text size="sm" c="dimmed">Location</Text>
                     <Group gap="xs">
                       <IconMapPin size={16} color="#ef4444" />
                       <Text fw={500}>{location}</Text>
@@ -776,14 +781,11 @@ export default function PaymentPage() {
               color="gray"
               size="lg"
               radius="md"
-              onClick={() => router.push("/subscribe")}
+              onClick={handleBack}
               leftSection={<IconArrowLeft size={20} />}
               style={{
                 border: `2px solid ${getBg(colorScheme, "#e5e7eb", theme.colors.dark[5])}`,
                 transition: "all 0.3s ease",
-                "&:hover": {
-                  transform: "translateX(-4px)",
-                },
               }}
             >
               Back
@@ -802,11 +804,7 @@ export default function PaymentPage() {
                   boxShadow: "0 8px 20px rgba(59, 130, 246, 0.3)",
                 },
                 "&:disabled": {
-                  background: getBg(
-                    colorScheme,
-                    "#e5e7eb",
-                    theme.colors.dark[5],
-                  ),
+                  background: getBg(colorScheme, "#e5e7eb", theme.colors.dark[5]),
                   transform: "none",
                   boxShadow: "none",
                 },
@@ -872,6 +870,7 @@ export default function PaymentPage() {
     );
   };
 
+  // Payment form per method
   const renderPaymentForm = () => {
     const getPaymentMethodStyle = (color) => ({
       background: getBg(
@@ -928,9 +927,7 @@ export default function PaymentPage() {
                         value={cardExpiry}
                         onChange={(e) => setCardExpiry(e.currentTarget.value)}
                         size="md"
-                        error={
-                          showError(cardExpiry) && "Expiry date is required"
-                        }
+                        error={showError(cardExpiry) && "Expiry date is required"}
                         styles={inputStyles}
                       />
                     </Grid.Col>
@@ -951,9 +948,7 @@ export default function PaymentPage() {
                     onChange={(e) => setCardholder(e.currentTarget.value)}
                     leftSection={<IconUser size={18} color="#8b5cf6" />}
                     size="md"
-                    error={
-                      showError(cardholder) && "Cardholder name is required"
-                    }
+                    error={showError(cardholder) && "Cardholder name is required"}
                     styles={inputStyles}
                   />
                 </Stack>
@@ -1034,9 +1029,7 @@ export default function PaymentPage() {
                     onChange={setSelectedBank}
                     leftSection={<IconBuildingBank size={18} color="#3b82f6" />}
                     size="md"
-                    error={
-                      showError(selectedBank) && "Bank selection is required"
-                    }
+                    error={showError(selectedBank) && "Bank selection is required"}
                     styles={{
                       ...inputStyles,
                       input: {
@@ -1082,9 +1075,7 @@ export default function PaymentPage() {
                     onChange={(e) => setAccountNumber(e.currentTarget.value)}
                     leftSection={<IconCreditCard size={18} color="#3b82f6" />}
                     size="md"
-                    error={
-                      showError(accountNumber) && "Account number is required"
-                    }
+                    error={showError(accountNumber) && "Account number is required"}
                     styles={inputStyles}
                   />
                 </Stack>
@@ -1095,6 +1086,7 @@ export default function PaymentPage() {
     }
   };
 
+  // PIN Modal
   const renderPinModal = () => (
     <Modal
       opened={showPinModal}
@@ -1322,12 +1314,12 @@ export default function PaymentPage() {
               />
             </Link>
 
-            {/* Back Button */}
+            {/* Back Button – now uses handleBack for logging */}
             <ActionIcon
               variant="subtle"
               color="gray"
               size="lg"
-              onClick={() => router.back()}
+              onClick={handleBack}
             >
               <IconArrowLeft size={24} />
             </ActionIcon>
@@ -1365,7 +1357,7 @@ export default function PaymentPage() {
         <Stepper />
 
         <Grid gutter="xl">
-          {/* LEFT: Dynamic Content */}
+          {/* LEFT CONTENT */}
           <Grid.Col span={{ base: 12, lg: 7 }}>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -1389,7 +1381,7 @@ export default function PaymentPage() {
             </motion.div>
           </Grid.Col>
 
-          {/* RIGHT: Plan Selection */}
+          {/* RIGHT PANEL – PLAN SELECTION & SUMMARY */}
           <Grid.Col span={{ base: 12, lg: 5 }}>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
