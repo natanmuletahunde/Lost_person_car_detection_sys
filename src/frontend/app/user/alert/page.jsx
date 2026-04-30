@@ -62,10 +62,10 @@ import { useRef, useState, useEffect } from "react";
 
 // API Endpoints
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001";
-const MISSING_VEHICLES_API = `${API_BASE_URL}/missingVehicles`;
-const MISSING_PERSONS_API = `${API_BASE_URL}/missingPersons`;
-const SIGHTINGS_API = `${API_BASE_URL}/sightings`; // NEW: sightings endpoint
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api/v1";
+const MISSING_VEHICLES_API = `${API_BASE_URL}/missing-vehicles`;
+const MISSING_PERSONS_API = `${API_BASE_URL}/missing-persons`;
+const SIGHTINGS_API = `${API_BASE_URL}/sightings`;
 
 // Helper to get dynamic background/color values
 const getBg = (colorScheme, light, dark) =>
@@ -101,21 +101,8 @@ export default function AlertPage() {
   // Add this function after your useState declarations
   const handleLogout = async () => {
     try {
-      const storedUser = localStorage.getItem("currentUser");
-      if (storedUser) {
-        const user = JSON.parse(storedUser);
-        // Optional: Log logout event
-        await fetch("http://localhost:3001/logs", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userId: user.id,
-            userEmail: user.email,
-            action: "logout",
-            timestamp: new Date().toISOString(),
-          }),
-        });
-      }
+      // Removed logging to JSON Server
+      // Optional: Log logout event (removed)
     } catch (error) {
       console.error("Failed to log logout", error);
     }
@@ -149,7 +136,23 @@ export default function AlertPage() {
       console.error("Failed to parse user data from localStorage", error);
     }
   }, []);
-  // Fetch real data from JSON Server (including sightings)
+
+  // Authentication check
+  useEffect(() => {
+    const checkAuth = () => {
+      const isAuthenticated = localStorage.getItem('isAuthenticated');
+      const userData = localStorage.getItem('currentUser');
+
+      if (!isAuthenticated || !userData || isAuthenticated !== 'true') {
+        notifications.show({ title: 'Login Required', message: 'Please login to view alerts', color: 'yellow', icon: <IconAlertCircle size={20} /> });
+        router.push('/login');
+        return;
+      }
+    };
+    checkAuth();
+  }, [router]);
+
+  // Fetch real data from backend (including sightings)
   useEffect(() => {
     const fetchAlerts = async () => {
       try {

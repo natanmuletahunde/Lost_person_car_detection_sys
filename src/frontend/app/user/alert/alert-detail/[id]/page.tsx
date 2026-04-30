@@ -77,10 +77,10 @@ const DefaultIcon = L.icon({
 L.Marker.prototype.options.icon = DefaultIcon;
 
 // ---------- API Configuration ----------
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
-const MISSING_VEHICLES_API = `${API_BASE_URL}/missingVehicles`;
-const MISSING_PERSONS_API = `${API_BASE_URL}/missingPersons`;
-const SIGHTINGS_API = `${API_BASE_URL}/sightings`; // <-- NEW
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api/v1';
+const MISSING_VEHICLES_API = `${API_BASE_URL}/missing-vehicles`;
+const MISSING_PERSONS_API = `${API_BASE_URL}/missing-persons`;
+const SIGHTINGS_API = `${API_BASE_URL}/sightings`;
 
 // ---------- Helper Functions ----------
 const determineVehicleType = (vehicle) => {
@@ -201,11 +201,8 @@ export default function AlertDetailPage() {
         ipAddress: ip,
       };
 
-      await fetch('http://localhost:3001/logs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(logEntry),
-      });
+      // Logging is currently disabled for JSON Server cleanup.
+      // Add a backend logging endpoint later if needed.
     } catch (error) {
       console.error('Logging failed:', error);
       // Non-blocking

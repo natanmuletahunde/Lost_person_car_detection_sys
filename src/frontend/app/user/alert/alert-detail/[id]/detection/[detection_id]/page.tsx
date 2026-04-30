@@ -65,9 +65,9 @@ const DefaultIcon = L.icon({
 L.Marker.prototype.options.icon = DefaultIcon;
 
 // API Endpoints
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
-const MISSING_PERSONS_API = `${API_BASE_URL}/missingPersons`;
-const MISSING_VEHICLES_API = `${API_BASE_URL}/missingVehicles`;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api/v1';
+const MISSING_PERSONS_API = `${API_BASE_URL}/missing-persons`;
+const MISSING_VEHICLES_API = `${API_BASE_URL}/missing-vehicles`;
 const SIGHTINGS_API = `${API_BASE_URL}/sightings`;
 
 // Helper to get dynamic background/color values
@@ -131,11 +131,8 @@ export default function SingleDetectionDetailPage() {
         ipAddress: ip,
       };
 
-      await fetch('http://localhost:3001/logs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(logEntry),
-      });
+      // Logging is currently disabled for JSON Server cleanup.
+      // You can add a backend logging endpoint later if needed.
     } catch (error) {
       console.error('Logging failed:', error);
     }
