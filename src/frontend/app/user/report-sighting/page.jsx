@@ -33,7 +33,6 @@ import {
   IconDashboard,
   IconQuestionMark,
   IconInfoCircle,
-  IconExternalLink,
 } from '@tabler/icons-react';
 import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -42,8 +41,8 @@ import Link from 'next/link';
 import MainFooter from '../../components/MainFooter';
 import { useMediaQuery } from '@mantine/hooks';
 
-// JSON Server URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
+// Real backend API URL
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api/v1';
 const SIGHTINGS_API = `${API_BASE_URL}/sightings`;
 
 // Theme constants (same as registration form)
@@ -148,59 +147,31 @@ export default function ReportSightingPage() {
     }));
   };
 
-  const saveToJsonServer = async (data) => {
+  const submitSightingToBackend = async (data, token) => {
     try {
       const response = await fetch(SIGHTINGS_API, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify(data),
       });
-      if (!response.ok) throw new Error(`Failed to save data: ${response.statusText}`);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.message || `Failed to submit sighting: ${response.statusText}`);
+      }
+
       return await response.json();
     } catch (error) {
-      console.error('Error saving to JSON Server:', error);
+      console.error('Error submitting sighting:', error);
       throw error;
     }
   };
 
-  // ********** LOGGING FUNCTION **********
-  const createSightingLog = async (sightingData) => {
-    try {
-      if (!currentUser) return;
-      let ip = 'unknown';
-      try {
-        const ipRes = await fetch('https://api.ipify.org?format=json');
-        const ipData = await ipRes.json();
-        ip = ipData.ip;
-      } catch (e) { /* ignore */ }
-
-      const logEntry = {
-        userId: currentUser.id,
-        userEmail: currentUser.email,
-        action: 'sighting_submitted',
-        sightingType: sightingData.type,
-        description: sightingData.name || sightingData.plateNumber || 'Unknown',
-        location: sightingData.location,
-        originalCaseId: sightingData.originalCaseId || null,
-        timestamp: new Date().toISOString(),
-        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
-        ipAddress: ip,
-      };
-
-      await fetch('http://localhost:3001/logs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(logEntry),
-      });
-    } catch (error) {
-      console.error('Logging failed:', error);
-      // Non-blocking
-    }
-  };
-  // **************************************
-
   const handleSubmit = async () => {
-    const required = ['type', 'location', 'date', 'time'];
+    const required = ['type', 'location'];
     if (formValues.type === 'Person') required.push('name');
     else required.push('plateNumber');
 
@@ -217,30 +188,61 @@ export default function ReportSightingPage() {
 
     setIsSubmitting(true);
 
-    // Extract originalCaseId from URL parameters
-    const originalCaseId = searchParams.get('caseId');
+    const authToken =
+      localStorage.getItem('accessToken') ||
+      localStorage.getItem('token') ||
+      currentUser?.token ||
+      null;
+
+    if (!authToken) {
+      notifications.show({
+        title: 'Authentication Required',
+        message: 'Please login again. No API token was found.',
+        color: 'yellow',
+        icon: <IconAlertCircle size={20} />,
+      });
+      setIsSubmitting(false);
+      router.push('/authentication/login');
+      return;
+    }
+
+    const combinedDateTime = formValues.date && formValues.time
+      ? new Date(`${formValues.date}T${formValues.time}`).toISOString()
+      : new Date().toISOString();
+    const latitude = Number(formValues.latitude);
+    const longitude = Number(formValues.longitude);
+
+    if (Number.isNaN(latitude) || Number.isNaN(longitude)) {
+      notifications.show({
+        title: 'Location Required',
+        message: 'Please pick a location from the map to capture coordinates.',
+        color: 'red',
+        icon: <IconAlertCircle size={20} />,
+      });
+      setIsSubmitting(false);
+      return;
+    }
+
+    const baseDescription = formValues.description?.trim()
+      ? formValues.description.trim()
+      : 'No additional details provided';
+    const subjectInfo = formValues.type === 'Person'
+      ? `Person name: ${formValues.name}`
+      : `Vehicle plate: ${formValues.plateNumber}`;
 
     const payload = {
-      ...formValues,
-      originalCaseId: originalCaseId || null, // <-- save the case ID
-      reportedBy: currentUser
-        ? {
-            userId: currentUser.id,
-            firstName: currentUser.firstName,
-            lastName: currentUser.lastName,
-            email: currentUser.email,
-            phone: currentUser.phone,
-            role: currentUser.role,
-          }
-        : null,
-      reportDate: new Date().toISOString(),
-      status: 'pending',
+      type: formValues.type.toLowerCase(),
+      description: `${subjectInfo}. ${baseDescription}. Seen at: ${combinedDateTime}`,
+      location: {
+        type: 'Point',
+        coordinates: [longitude, latitude],
+        address: formValues.location,
+      },
+      images: formValues.imagePreview ? [formValues.imagePreview] : [],
     };
 
     try {
-      const savedSighting = await saveToJsonServer(payload);
-      // 🔹 LOG SUCCESSFUL SUBMISSION
-      createSightingLog(payload).catch(err => console.error('Log error:', err));
+      await submitSightingToBackend(payload, authToken);
 
       notifications.show({
         title: 'Thank you!',
@@ -250,10 +252,9 @@ export default function ReportSightingPage() {
       });
       router.push('/');
     } catch (err) {
-      // We don't log failures here, but you could add it if needed
       notifications.show({
         title: 'Submission Failed',
-        message: 'Failed to submit sighting. Please try again.',
+        message: err.message || 'Failed to submit sighting. Please try again.',
         color: 'red',
         icon: <IconAlertCircle size={20} />,
       });
