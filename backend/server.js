@@ -27,6 +27,10 @@ const adminRoutes = require('./routes/admin.routes');
 const missingPersonRoutes = require('./routes/missingPerson.routes');
 const missingVehicleRoutes = require('./routes/missingVehicle.routes');
 
+const analyticsRoutes = require('./routes/analytics.routes');
+const subscriptionRoutes = require('./routes/subscription.routes');
+const gpsRoutes = require('./routes/gps.routes');
+
 const app = express();
 
 connectDB();
@@ -112,6 +116,15 @@ app.use('/api/v1/missing-persons', missingPersonRoutes);
 
 // 🚗 NEW: Missing Vehicles System
 app.use('/api/v1/missing-vehicles', missingVehicleRoutes);
+
+// Analytics & Stats
+app.use('/api/v1/analytics', analyticsRoutes);
+
+// Subscriptions & Payments
+app.use('/api/v1/subscriptions', subscriptionRoutes);
+
+// GPS Tracking
+app.use('/api/v1/gps', gpsRoutes);
 
 // ML test route
 app.get('/api/v1/ml/test', (req, res) => {

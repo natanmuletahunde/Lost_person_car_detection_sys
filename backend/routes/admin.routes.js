@@ -2,6 +2,21 @@ const express = require('express');
 const router = express.Router();
 const { protect, authorize } = require('../middlewares/auth');
 const { approveSighting, rejectSighting } = require('../controllers/admin.controller');
+const {
+  getAllUsers,
+  getUserById,
+  updateUser,
+  deleteUser,
+  getAllCases,
+  updateCaseStatus,
+  getCaseDetail,
+  getFinanceStats,
+  getAllFeedback,
+  respondToFeedback,
+  sendBulkNotification,
+  getNotificationsSettings,
+  getDashboardStats
+} = require('../controllers/adminExtended.controller');
 
 /**
  * @swagger
@@ -63,5 +78,23 @@ const { approveSighting, rejectSighting } = require('../controllers/admin.contro
  */
 router.patch('/sightings/:id/approve', protect, authorize('admin', 'moderator'), approveSighting);
 router.patch('/sightings/:id/reject', protect, authorize('admin', 'moderator'), rejectSighting);
+
+router.get('/dashboard', protect, authorize('admin', 'moderator'), getDashboardStats);
+router.get('/users', protect, authorize('admin', 'moderator'), getAllUsers);
+router.get('/users/:id', protect, authorize('admin', 'moderator'), getUserById);
+router.patch('/users/:id', protect, authorize('admin', 'moderator'), updateUser);
+router.delete('/users/:id', protect, authorize('admin', 'moderator'), deleteUser);
+
+router.get('/cases', protect, authorize('admin', 'moderator'), getAllCases);
+router.get('/cases/:type/:id', protect, authorize('admin', 'moderator'), getCaseDetail);
+router.patch('/cases/:id/status', protect, authorize('admin', 'moderator'), updateCaseStatus);
+
+router.get('/finance', protect, authorize('admin', 'moderator'), getFinanceStats);
+
+router.get('/feedback', protect, authorize('admin', 'moderator'), getAllFeedback);
+router.patch('/feedback/:id/respond', protect, authorize('admin', 'moderator'), respondToFeedback);
+
+router.post('/notifications/bulk', protect, authorize('admin', 'moderator'), sendBulkNotification);
+router.get('/notifications/settings', protect, authorize('admin', 'moderator'), getNotificationsSettings);
 
 module.exports = router;
