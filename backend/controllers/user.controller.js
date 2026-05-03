@@ -4,6 +4,77 @@ const Alert = require('../models/Alert');
 const Subscription = require('../models/Subscription');
 const ApiResponse = require('../utils/ApiResponse');
 const { paginate } = require('../utils/helpers');
+const bcrypt = require('bcrypt');
+const config = require('../config');
+
+const createUser = async (req, res, next) => {
+  try {
+    const { firstName, lastName, email, phone, password, role, isActive } = req.body;
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return ApiResponse.error(res, 'User with this email already exists', 400);
+    }
+
+    const hashedPassword = await bcrypt.hash(password, config.bcrypt.saltRounds);
+
+    const user = new User({
+      firstName,
+      lastName,
+      email,
+      phone,
+      password: hashedPassword,
+      role: role || 'user',
+      isActive: isActive !== undefined ? isActive : true,
+    });
+
+    await user.save();
+
+    return ApiResponse.success(res, 'User created successfully', {
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+        isActive: user.isActive,
+      },
+    }, 201);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const checkUserExists = async (req, res, next) => {
+  try {
+    const { email, phone } = req.query;
+    
+    const query = {};
+    if (email) query.email = email;
+    if (phone) query.phone = phone;
+    
+    if (!email && !phone) {
+      return ApiResponse.error(res, 'Email or phone is required', 400);
+    }
+
+    const user = await User.findOne(query).select('+password');
+    
+    return ApiResponse.success(res, 'User check result', {
+      exists: !!user,
+      user: user ? { 
+        id: user._id, 
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email, 
+        phone: user.phone,
+        password: user.password,
+        role: user.role 
+      } : null
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 const getAllUsers = async (req, res, next) => {
   try {
@@ -122,6 +193,8 @@ const getDashboardStats = async (req, res, next) => {
 };
 
 module.exports = {
+  createUser,
+  checkUserExists,
   getAllUsers,
   getUserById,
   updateUser,

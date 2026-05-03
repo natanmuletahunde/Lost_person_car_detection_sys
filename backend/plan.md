@@ -1,61 +1,50 @@
-Act as a senior backend architect and teach me how to fully set up Swagger (OpenAPI) ONLY in the backend for my Lost Person Car Detection system using Node.js, Express, and MongoDB.
+# Fix NetworkError on Signup - Action Plan
 
-I want a COMPLETE backend-only implementation guide, nothing skipped.
+## Problem
+Frontend receives `NetworkError when attempting to fetch resource` when trying to sign up.
 
-Cover all of these:
+## Root Causes & Solutions
 
-1. Explain the purpose of Swagger in the backend and where it fits in my architecture.
+### 1. Backend Server Not Running
+**Fix:** Start the backend server:
+```bash
+cd backend
+npm install  # if node_modules missing
+npm start     # or node server.js
+```
+**Verify:** Open `http://localhost:5000/api/v1/health` in browser - should return `{"success": true, "message": "Server is running"}`
 
-2. Show how to install and configure:
-- swagger-jsdoc
-- swagger-ui-express
+### 2. Wrong API URL in Frontend
+**Fix:** Ensure frontend calls the correct endpoint:
+```
+POST http://localhost:5000/api/v1/auth/register
+```
+Check frontend `.env` or API config for `REACT_APP_API_URL` or similar.
 
-3. Show complete setup in server.js:
-- imports
-- swagger configuration
-- OpenAPI definition
-- mounting /api-docs route
-- separating swagger config into its own file (best practice)
+### 3. CORS Misconfiguration
+**Fix:** Update `.env` file in backend:
+```
+CORS_ORIGIN=http://localhost:3000
+```
+Replace `3000` with your frontend's actual port (e.g., 5173 for Vite, 3000 for CRA).
 
-4. Show how to document all major backend endpoints for my system:
-- Authentication routes
-- User management routes
-- Lost person report routes
-- Car detection routes
-- Image upload routes
-- Search routes
-- Admin approval routes
-- JWT protected routes
+### 4. MongoDB Connection Failure
+**Fix:** Ensure `.env` has valid `MONGODB_URI`:
+```
+MONGODB_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/<dbname>
+```
+If using local MongoDB: `MONGODB_URI=mongodb://localhost:27017/lost_person_car`
 
-5. Show how to document:
-- request body schemas
-- response schemas
-- path parameters
-- query parameters
-- multipart/form-data file uploads
-- bearer JWT authentication
+### 5. Test Signup Endpoint
+Use Postman/curl to test backend directly:
+```bash
+curl -X POST http://localhost:5000/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"firstName":"Test","lastName":"User","email":"test@example.com","phone":"1234567890","password":"Test123!","confirmPassword":"Test123!"}'
+```
 
-6. Show how to add Swagger annotations inside Express route files and controllers.
-
-7. Show best production folder structure for organizing Swagger in a large backend project.
-
-8. Show how to test Swagger in browser:
-http://localhost:5000/api-docs
-
-9. Show security best practices:
-- protect or disable docs in production
-- restrict Swagger to admin access if needed
-- avoid exposing sensitive internal endpoints
-
-10. Show common errors and fixes:
-- Cannot find module errors
-- Swagger routes not loading
-- Endpoints not appearing
-- Annotation syntax mistakes
-- Empty Swagger UI problems
-
-11. Generate a sample OpenAPI spec specifically for my Lost Person Car Detection backend.
-
-12. Explain how professionals maintain Swagger as APIs grow.
-
-Give full code snippets, folder structure, explanations, and production-grade backend setup only.
+## Verification Steps
+1. Backend logs show `Server running in development mode on http://0.0.0.0:5000`
+2. Backend logs show `✅ MongoDB connected...`
+3. Health check endpoint returns success
+4. Signup request from frontend succeeds

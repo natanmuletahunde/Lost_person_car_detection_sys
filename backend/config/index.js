@@ -9,11 +9,11 @@ module.exports = {
     saltRounds: parseInt(process.env.BCRYPT_SALT_ROUNDS) || 12,
   },
   server: {
-    port: parseInt(process.env.PORT) || 5000,
+    port: parseInt(process.env.PORT) || 3001,
     nodeEnv: process.env.NODE_ENV || 'development',
   },
   cors: {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    origin: ['http://localhost:3001'],
     credentials: true,
   },
   rateLimit: {

@@ -102,6 +102,54 @@ export default function LoginPage() {
     }
   }, [router]);
 
+  // Check if user exists when login value changes (with debounce)
+  useEffect(() => {
+    const checkUserExists = async () => {
+      if (!watchedValue || watchedValue.length < 3) {
+        setUserExists(null);
+        return;
+      }
+
+      setIsCheckingUser(true);
+      setLoginError('');
+
+      try {
+let queryField = type === 'email' ? 'email' : 'phone';
+        const response = await fetch(
+          `http://localhost:3001/users/check?${queryField}=${encodeURIComponent(watchedValue)}`,
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+
+        if (response.ok) {
+          const users = await response.json();
+          setUserExists(users.length > 0);
+
+          if (users.length === 0) {
+            setLoginError(`No account found with this ${type === 'email' ? 'email' : 'phone number'}`);
+          } else {
+            clearErrors('loginValue');
+          }
+        }
+      } catch (error) {
+        console.error('Error checking user:', error);
+        setUserExists(null);
+      } finally {
+        setIsCheckingUser(false);
+      }
+    };
+
+    const timeoutId = setTimeout(() => {
+      checkUserExists();
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [watchedValue, type, clearErrors]);
+
   // All other functions (showNotification, handleTypeSwitch, createLoginLog, onSubmit, etc.)
   const showNotification = (title, message, color, icon) => {
     notifications.show({
@@ -129,16 +177,17 @@ export default function LoginPage() {
     setLoginError('');
 
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          loginValue: data.loginValue.trim(),
-          password: data.password,
-        }),
-      });
+      const queryField = type === 'email' ? 'email' : 'phone';
+
+const response = await fetch(
+        `http://localhost:3001/users/check?${queryField}=${encodeURIComponent(data.loginValue)}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
@@ -146,26 +195,20 @@ export default function LoginPage() {
       }
 
       const result = await response.json();
-      const user = result?.data?.user;
-      const token = result?.data?.token;
-      const refreshToken = result?.data?.refreshToken;
 
-      if (!user || !token) throw new Error('Invalid login response');
+      if (!result.data?.exists) {
+        setLoginError(`No account found with this ${type === 'email' ? 'email' : 'phone number'}`);
+        showNotification(
+          'Account Not Found',
+          `Please check your ${type === 'email' ? 'email' : 'phone number'} or sign up for a new account.`,
+          'red',
+          <IconX size={18} />
+        );
+        setIsSubmitting(false);
+        return;
+      }
 
-      localStorage.setItem('currentUser', JSON.stringify({
-        id: user._id || user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-        isActive: user.isActive,
-        address: user.address || '',
-        profileImage: user.profileImage || '',
-      }));
-      localStorage.setItem('accessToken', token);
-      if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
-      localStorage.setItem('isAuthenticated', 'true');
+      const user = result.data.user;
 
       showNotification(
         'Login Successful!',
@@ -174,13 +217,53 @@ export default function LoginPage() {
         <IconCheck size={18} />
       );
 
-      setTimeout(() => {
-        if (user.role && user.role.toLowerCase() === 'admin') {
-          router.push('/admin');
-        } else {
-          router.push('/');
-        }
-      }, 500);
+        showNotification(
+          'Login Successful!',
+          `Welcome back, ${user.firstName}!`,
+          'green',
+          <IconCheck size={18} />
+        );
+
+        localStorage.setItem('currentUser', JSON.stringify({
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          phone: user.phone,
+          role: user.role,
+          isActive: user.isActive,
+        }));
+
+        localStorage.setItem('isAuthenticated', 'true');
+
+        await fetch(`http://localhost:3001/users/${user.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            lastLogin: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          }),
+        });
+
+setTimeout(() => {
+          if (user.role && user.role.toLowerCase() === 'admin') {
+            router.push('/admin');
+          } else {
+            router.push('/user/dashboard');
+          }
+        }, 1000);
+
+      } else {
+        setLoginError('Invalid password. Please try again.');
+        showNotification(
+          'Login Failed',
+          'The password you entered is incorrect.',
+          'red',
+          <IconX size={18} />
+        );
+      }
 
     } catch (error) {
       console.error('Login error:', error);

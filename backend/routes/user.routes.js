@@ -1,7 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { getAllUsers, getUserById, updateUser, deleteUser, getDashboardStats } = require('../controllers/user.controller');
+const { getAllUsers, getUserById, updateUser, deleteUser, getDashboardStats, createUser, checkUserExists } = require('../controllers/user.controller');
 const { protect, authorize } = require('../middlewares/auth');
+
+router.post('/', createUser);
+router.get('/check', checkUserExists);
 
 /**
  * @swagger
