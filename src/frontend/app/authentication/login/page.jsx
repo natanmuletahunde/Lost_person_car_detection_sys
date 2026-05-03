@@ -51,7 +51,7 @@ export default function LoginPage() {
   const [type, setType] = useState('email');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loginError, setLoginError] = useState('');
-  const [authChecking, setAuthChecking] = useState(true);
+  const [authChecking, setAuthChecking] = useState(false); // always false, no redirect check
   const [userExists, setUserExists] = useState(null);
   const [isCheckingUser, setIsCheckingUser] = useState(false);
 
@@ -83,26 +83,8 @@ export default function LoginPage() {
 
   const watchedValue = watch('loginValue');
 
-  // Check if user is already logged in
-  useEffect(() => {
-    const userData = localStorage.getItem('currentUser');
-    const accessToken = localStorage.getItem('accessToken') || localStorage.getItem('token');
-    if (userData && accessToken) {
-      try {
-        const user = JSON.parse(userData);
-        if (user.role && user.role.toLowerCase() === 'admin') {
-          router.push('/admin');
-        } else {
-          router.push('/user/dashboard');
-        }
-      } catch (e) {
-        console.error('Error parsing user data', e);
-        setAuthChecking(false);
-      }
-    } else {
-      setAuthChecking(false);
-    }
-  }, [router]);
+  // ❌ Automatic login check REMOVED – no redirection on page load
+  // Instead we just set authChecking to false immediately.
 
   // Check if user exists when login value changes (with debounce) – optional
   useEffect(() => {
@@ -180,7 +162,7 @@ export default function LoginPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          loginValue: data.loginValue,   // ✅ unified field as expected by backend
+          loginValue: data.loginValue,
           password: data.password,
         }),
       });
@@ -264,13 +246,8 @@ export default function LoginPage() {
     );
   };
 
-  if (authChecking) {
-    return (
-      <Center style={{ minHeight: '100vh', background: getBg(colorScheme, '#EAF2FF', theme.colors.dark[7]) }}>
-        <Loader size="xl" color="blue" />
-      </Center>
-    );
-  }
+  // No loading state because authChecking is always false
+  // (If you still want a brief initial loader, you can keep it but remove redirect logic)
 
   const mainBg = getBg(colorScheme, '#EAF2FF', theme.colors.dark[7]);
   const paperBg = getBg(colorScheme, '#dbeafe', theme.colors.blue[9]);
