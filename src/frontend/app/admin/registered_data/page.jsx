@@ -19,9 +19,7 @@ import {
   IconEye, IconPlus, IconFileSpreadsheet, IconAlertCircle,
   IconChevronRight
 } from '@tabler/icons-react';
-
-// API base URL – using port 3000
-const API_BASE_URL = "http://localhost:3001";
+import { adminFetch } from '@/app/lib/adminApi';
 
 // Helpers
 const getBg = (colorScheme, light, dark) => (colorScheme === 'dark' ? dark : light);
@@ -37,34 +35,38 @@ const getReporterName = (reportedBy) => {
   return name || reportedBy.email || 'N/A';
 };
 
+const personReportDate = (person) => person.reportDate || person.createdAt || new Date().toISOString();
+
 // Map a person from the API to our unified record shape
 const mapPersonToRecord = (person) => ({
-  id: person.id,
-  brand: `${person.firstName} ${person.lastName}`.trim(),
+  id: `person-${person._id}`,
+  caseType: 'person',
+  brand: `${person.firstName || ''} ${person.lastName || ''}`.trim(),
   model: 'Person',
   user: getReporterName(person.reportedBy),
   plate: 'N/A',
-  date: new Date(person.dateReported).toLocaleDateString('en-US', {
+  date: new Date(personReportDate(person)).toLocaleDateString('en-US', {
     year: 'numeric', month: 'short', day: 'numeric'
   }),
-  dateObj: new Date(person.dateReported),
-  status: person.status || 'Unverified',
-  alerts: person.alerts || 0,
+  dateObj: new Date(personReportDate(person)),
+  status: person.status || 'Active',
+  alerts: Array.isArray(person.matches) ? person.matches.length : 0,
 });
 
 // Map a vehicle from the API to our unified record shape
 const mapVehicleToRecord = (vehicle) => ({
-  id: vehicle.id,
+  id: `vehicle-${vehicle._id}`,
+  caseType: 'vehicle',
   brand: vehicle.make || vehicle.brand,
   model: vehicle.model,
   user: getReporterName(vehicle.reportedBy),
   plate: vehicle.plateNumber || vehicle.plate,
-  date: new Date(vehicle.dateReported).toLocaleDateString('en-US', {
+  date: new Date(vehicle.createdAt || vehicle.lastSeenDate || new Date()).toLocaleDateString('en-US', {
     year: 'numeric', month: 'short', day: 'numeric'
   }),
-  dateObj: new Date(vehicle.dateReported),
-  status: vehicle.status || 'Unverified',
-  alerts: vehicle.alerts || 0,
+  dateObj: new Date(vehicle.createdAt || vehicle.lastSeenDate || new Date()),
+  status: vehicle.status || 'Active',
+  alerts: Array.isArray(vehicle.matches) ? vehicle.matches.length : 0,
 });
 
 export default function DataManagementPage() {
@@ -94,25 +96,13 @@ export default function DataManagementPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [personsRes, vehiclesRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/missingPersons`),
-        fetch(`${API_BASE_URL}/missingVehicles`)
-      ]);
-
-      if (!personsRes.ok || !vehiclesRes.ok) {
-        throw new Error('Failed to fetch data from server');
-      }
-
-      const persons = await personsRes.json();
-      const vehicles = await vehiclesRes.json();
-
-      const personRecords = persons.map(mapPersonToRecord);
-      const vehicleRecords = vehicles.map(mapVehicleToRecord);
-
-      // Merge and sort by date descending
-      const allRecords = [...personRecords, ...vehicleRecords]
-        .sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime());
-
+      const payload = await adminFetch('/admin/cases?limit=500&page=1');
+      const cases = payload?.cases || [];
+      const personRecords = cases.filter((c) => c.caseType === 'person').map(mapPersonToRecord);
+      const vehicleRecords = cases.filter((c) => c.caseType === 'vehicle').map(mapVehicleToRecord);
+      const allRecords = [...personRecords, ...vehicleRecords].sort(
+        (a, b) => b.dateObj.getTime() - a.dateObj.getTime()
+      );
       setData(allRecords);
     } catch (error) {
       console.error('Fetch error:', error);
@@ -176,8 +166,8 @@ export default function DataManagementPage() {
   // ---------- STATS ----------
   const stats = useMemo(() => {
     const total = data.length;
-    const verified = data.filter(d => d.status === 'Verified').length;
-    const unverified = data.filter(d => d.status === 'Unverified').length;
+    const verified = data.filter(d => d.status === 'Resolved' || d.status === 'Verified').length;
+    const unverified = data.filter(d => d.status !== 'Resolved' && d.status !== 'Verified').length;
     const totalAlerts = data.reduce((sum, d) => sum + d.alerts, 0);
     return { total, verified, unverified, totalAlerts };
   }, [data]);
@@ -239,12 +229,26 @@ export default function DataManagementPage() {
     });
   };
 
-  const toggleStatus = (id) => {
-    setData(prev => prev.map(item =>
-      item.id === id
-        ? { ...item, status: item.status === 'Verified' ? 'Unverified' : 'Verified' }
-        : item
-    ));
+  const toggleStatus = async (compositeId) => {
+    const m = String(compositeId).match(/^(person|vehicle)-(.+)$/);
+    if (!m) return;
+    const [, caseType, mongoId] = m;
+    const item = data.find((d) => d.id === compositeId);
+    if (!item) return;
+    const nextStatus = item.status === 'Resolved' ? 'Active' : 'Resolved';
+    try {
+      await adminFetch(`/admin/cases/${mongoId}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ type: caseType, status: nextStatus }),
+      });
+      setData((prev) =>
+        prev.map((row) => (row.id === compositeId ? { ...row, status: nextStatus } : row))
+      );
+      notifications.show({ title: 'Updated', message: `Status: ${nextStatus}`, color: 'green' });
+    } catch (e) {
+      console.error(e);
+      notifications.show({ title: 'Error', message: 'Could not update case status', color: 'red' });
+    }
   };
 
   // Export CSV
@@ -328,7 +332,7 @@ export default function DataManagementPage() {
           <Title order={2} fw={700} c={getTextColor(colorScheme, '#2B3674', theme.colors.gray[3])}>
             Data Management
           </Title>
-          <Text size="sm" c="dimmed">Live data from JSON Server</Text>
+          <Text size="sm" c="dimmed">Live data from API</Text>
         </Box>
         <Group bg={headerBg} p={8} style={{ borderRadius: '30px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
           <TextInput

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from 'react';
+import { adminFetch } from '@/app/lib/adminApi';
 import {
   Box, Title, Text, Paper, SimpleGrid, Group, Button,
   Table, Badge, ActionIcon, Tooltip, Select, TextInput,
@@ -72,6 +73,14 @@ export default function FinanceManagementPage() {
   const paperBg = getBg(colorScheme, 'white', theme.colors.dark[6]);
   const primaryText = getTextColor(colorScheme, '#2B3674', theme.colors.gray[3]);
 
+  const [financeApi, setFinanceApi] = useState(null);
+
+  useEffect(() => {
+    adminFetch('/admin/finance?period=90d')
+      .then(setFinanceApi)
+      .catch(() => setFinanceApi(null));
+  }, []);
+
   // ---------- STATE ----------
   const [plans, setPlans] = useState(INITIAL_PLANS);
   const [transactions, setTransactions] = useState(INITIAL_TRANSACTIONS);
@@ -89,16 +98,25 @@ export default function FinanceManagementPage() {
 
   // ---------- STATS ----------
   const stats = useMemo(() => {
-    const totalRevenue = transactions
+    const mockTotalRevenue = transactions
       .filter(t => t.status === 'Paid')
       .reduce((sum, t) => sum + t.amount, 0);
     const mrr = plans
       .filter(p => p.status === 'Active' && p.interval === 'month')
       .reduce((sum, p) => sum + (p.price * p.subscribers), 0);
-    const activeSubscriptions = plans.reduce((sum, p) => sum + p.subscribers, 0);
+    const mockActiveSubscriptions = plans.reduce((sum, p) => sum + p.subscribers, 0);
     const pendingInvoices = transactions.filter(t => t.status === 'Pending' || t.status === 'Overdue').length;
-    return { totalRevenue, mrr, activeSubscriptions, pendingInvoices };
-  }, [transactions, plans]);
+
+    const apiTotal = financeApi?.revenue?.total;
+    const apiActive = financeApi?.subscriptions?.active;
+
+    return {
+      totalRevenue: apiTotal != null ? apiTotal : mockTotalRevenue,
+      mrr: financeApi != null ? (financeApi.revenue?.total ?? 0) / 3 : mrr,
+      activeSubscriptions: apiActive != null ? apiActive : mockActiveSubscriptions,
+      pendingInvoices: financeApi != null ? 0 : pendingInvoices,
+    };
+  }, [transactions, plans, financeApi]);
 
   // ---------- FILTERED TRANSACTIONS ----------
   const filteredTransactions = useMemo(() => {
@@ -235,8 +253,16 @@ export default function FinanceManagementPage() {
     }
   }, [editingPlan]);
 
-  // Simple bar chart
-  const maxRevenue = Math.max(...MONTHLY_REVENUE.map(d => d.revenue));
+  const revenueChart = useMemo(() => {
+    const byMonth = financeApi?.revenue?.byMonth;
+    if (!byMonth || typeof byMonth !== 'object') return MONTHLY_REVENUE;
+    return Object.entries(byMonth).map(([month, revenue]) => ({
+      month,
+      revenue: Number(revenue) || 0,
+    }));
+  }, [financeApi]);
+
+  const maxRevenue = Math.max(...revenueChart.map(d => d.revenue), 1);
   const chartHeight = 180;
 
   return (
@@ -349,7 +375,7 @@ export default function FinanceManagementPage() {
           />
         </Group>
         <Box style={{ display: 'flex', alignItems: 'flex-end', gap: '16px', height: chartHeight, marginTop: '20px' }}>
-          {MONTHLY_REVENUE.map((item) => (
+          {revenueChart.map((item) => (
             <Box key={item.month} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <Box
                 style={{

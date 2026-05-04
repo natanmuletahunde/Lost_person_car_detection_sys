@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { adminFetch, adminFetchPaginatedList } from "@/app/lib/adminApi";
 import {
   Box, Title, Text, Paper, SimpleGrid, Group, Button,
   Timeline, ThemeIcon, ActionIcon, Tooltip, TextInput,
@@ -11,13 +12,54 @@ import { notifications } from "@mantine/notifications";
 
 const getBg = (colorScheme, light, dark) => (colorScheme === "dark" ? dark : light);
 
-const ACTIVITIES = [
-  { id: 1, action: "login", user: "admin@example.com", target: "System", time: "2026-05-03T10:30:00", details: "Admin logged in" },
-  { id: 2, action: "created", user: "admin@example.com", target: "Notification #12", time: "2026-05-03T09:15:00", details: "Created notification" },
-  { id: 3, action: "approved", user: "admin@example.com", target: "Document #45", time: "2026-05-03T08:45:00", details: "Approved ID document" },
-  { id: 4, action: "deleted", user: "admin@example.com", target: "User #89", time: "2026-05-02T16:20:00", details: "Deleted user account" },
-  { id: 5, action: "updated", user: "admin@example.com", target: "Plan: Pro", time: "2026-05-02T14:10:00", details: "Updated plan price" },
-];
+const reporterLabel = (reportedBy) => {
+  if (!reportedBy) return "—";
+  if (typeof reportedBy === "string") return reportedBy;
+  const name = `${reportedBy.firstName || ""} ${reportedBy.lastName || ""}`.trim();
+  return name || reportedBy.email || "—";
+};
+
+const buildActivities = (cases, sightings, users) => {
+  const out = [];
+  let nid = 1;
+  for (const c of cases.slice(0, 20)) {
+    const title =
+      c.caseType === "person"
+        ? `${c.firstName || ""} ${c.lastName || ""}`.trim()
+        : `${c.make || ""} ${c.model || ""}`.trim();
+    out.push({
+      id: nid++,
+      action: "created",
+      user: reporterLabel(c.reportedBy),
+      target: title || c.caseId || String(c._id),
+      time: c.reportDate || c.createdAt || new Date().toISOString(),
+      details: `New ${c.caseType} case`,
+    });
+  }
+  for (const s of sightings.slice(0, 15)) {
+    const u = s.user;
+    const uname = u ? `${u.firstName || ""} ${u.lastName || ""}`.trim() : "Reporter";
+    out.push({
+      id: nid++,
+      action: s.status === "confirmed" ? "approved" : "updated",
+      user: uname,
+      target: `Sighting ${String(s._id).slice(0, 8)}…`,
+      time: s.reportedAt || s.createdAt,
+      details: `${s.type || "sighting"} · ${s.status}`,
+    });
+  }
+  for (const u of users.slice(0, 8)) {
+    out.push({
+      id: nid++,
+      action: "login",
+      user: u.email || "user",
+      target: "Profile",
+      time: u.lastLogin || u.createdAt,
+      details: u.lastLogin ? "Last activity" : "Registered",
+    });
+  }
+  return out.sort((a, b) => new Date(b.time) - new Date(a.time));
+};
 
 const getColor = (action) => {
   const colors = { login: "blue", created: "green", updated: "cyan", deleted: "red", approved: "teal" };
@@ -42,9 +84,36 @@ export default function ActivitiesPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const pageSize = 10;
+  const [activities, setActivities] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [casesPayload, sightRes, usersPayload] = await Promise.all([
+          adminFetch("/admin/cases?limit=40&page=1"),
+          adminFetchPaginatedList("/sightings?limit=25&page=1"),
+          adminFetch("/admin/users?limit=15&page=1"),
+        ]);
+        if (cancelled) return;
+        const list = buildActivities(
+          casesPayload?.cases || [],
+          sightRes?.data || [],
+          usersPayload?.users || []
+        );
+        setActivities(list);
+      } catch (e) {
+        console.error(e);
+        notifications.show({ title: "Error", message: "Could not load activity feed", color: "red" });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const filtered = useMemo(() => {
-    let result = [...ACTIVITIES];
+    let result = [...activities];
     if (search) {
       const s = search.toLowerCase();
       result = result.filter(a => a.user.toLowerCase().includes(s) || a.target.toLowerCase().includes(s));
@@ -62,11 +131,13 @@ export default function ActivitiesPage() {
 
   const todayCount = useMemo(() => {
     const today = new Date().toISOString().split("T")[0];
-    return ACTIVITIES.filter(a => a.time.startsWith(today)).length;
-  }, []);
+    return activities.filter((a) => String(a.time).startsWith(today)).length;
+  }, [activities]);
 
-  const loginCount = ACTIVITIES.filter(a => a.action === "login").length;
-  const modCount = ACTIVITIES.filter(a => a.action === "created" || a.action === "updated" || a.action === "deleted" || a.action === "approved").length;
+  const loginCount = activities.filter((a) => a.action === "login").length;
+  const modCount = activities.filter((a) =>
+    ["created", "updated", "deleted", "approved"].includes(a.action)
+  ).length;
 
   const exportToCSV = () => {
     const headers = ["Action", "User", "Target", "Time", "Details"];
@@ -102,7 +173,7 @@ export default function ActivitiesPage() {
             <Text size="xs" c="dimmed" tt="uppercase" fw={700}>Total Activities</Text>
             <IconHistory size={20} color={theme.colors.blue[6]} />
           </Group>
-          <Text size="xl" fw={700} mt="xs">{ACTIVITIES.length}</Text>
+          <Text size="xl" fw={700} mt="xs">{activities.length}</Text>
         </Paper>
         <Paper withBorder radius="lg" p="md" bg={cardBg}>
           <Group justify="space-between">

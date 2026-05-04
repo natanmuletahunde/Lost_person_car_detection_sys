@@ -13,7 +13,7 @@ import {
 import { DateTimePicker } from '@mantine/dates';
 import { useDisclosure } from '@mantine/hooks';
 import { useForm } from '@mantine/form';
-import { notifications } from '@mantine/notifications';
+import { notifications as notify } from '@mantine/notifications';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import {
@@ -28,10 +28,40 @@ import {
   IconMail, IconDeviceMobile, IconWorld
 } from '@tabler/icons-react';
 import Link from 'next/link';
+import { adminFetch, API_BASE_URL } from '@/app/lib/adminApi';
+import { apiClient } from '@/app/lib/apiClient';
 
 dayjs.extend(relativeTime);
 
-const API_BASE_URL = 'http://localhost:3000';
+const LOG_KEY = 'admin_notification_log';
+
+function recipientTypeToBulkBody(recipientType) {
+  if (!recipientType || recipientType === 'all') return {};
+  if (String(recipientType).startsWith('role:')) {
+    const r = String(recipientType).replace('role:', '');
+    if (r === 'guest') return {};
+    return { roles: [r] };
+  }
+  return {};
+}
+
+async function postBulkNotification({ title, message, recipientType, type }) {
+  const extra = recipientTypeToBulkBody(recipientType);
+  const res = await apiClient(`${API_BASE_URL}/admin/notifications/bulk`, {
+    method: 'POST',
+    body: JSON.stringify({
+      title: title || 'Notification',
+      message,
+      type: type || 'general',
+      ...extra,
+    }),
+  });
+  const json = await res.json();
+  if (!res.ok || json.success === false) {
+    throw new Error(json.message || 'Bulk send failed');
+  }
+  return json.data;
+}
 
 // Helper to get dynamic background/color values
 const getBg = (colorScheme, light, dark) => (colorScheme === 'dark' ? dark : light);
@@ -154,17 +184,19 @@ export default function NotificationManagementPage() {
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_BASE_URL}/notifications`);
-      if (!res.ok) throw new Error('Failed to fetch notifications');
-      const data = await res.json();
-      setNotifications(data);
-      // Load activities (mock, but could be separate endpoint)
+      await adminFetch('/admin/notifications/settings').catch(() => null);
+      let stored = [];
+      try {
+        stored = JSON.parse(typeof window !== 'undefined' ? sessionStorage.getItem(LOG_KEY) || '[]' : '[]');
+      } catch {
+        stored = [];
+      }
+      setNotifications(Array.isArray(stored) ? stored : []);
       setActivities([
-        { id: 1, action: 'created', user: 'admin@example.com', target: 'System Maintenance', timestamp: '2026-02-14T09:00:00' },
-        // ... you can add more mock activities or fetch from an endpoint
+        { id: 1, action: 'created', user: 'system', target: 'Notification log (local)', timestamp: new Date().toISOString() },
       ]);
     } catch (error) {
-      notifications.show({
+      notify.show({
         title: 'Error',
         message: error.message,
         color: 'red',
@@ -265,9 +297,17 @@ export default function NotificationManagementPage() {
     setActivities(prev => [newActivity, ...prev].slice(0, 20));
   };
 
+  const persistLog = (rows) => {
+    setNotifications(rows);
+    try {
+      sessionStorage.setItem(LOG_KEY, JSON.stringify(rows.slice(0, 80)));
+    } catch (_) {}
+  };
+
   const createNotification = async (values) => {
     const recipientCount = getRecipientCount(values.recipientType);
     const newNotification = {
+      id: Date.now(),
       title: values.title,
       message: values.message,
       recipient: getRecipientLabel(values.recipientType),
@@ -278,32 +318,26 @@ export default function NotificationManagementPage() {
       scheduledFor: values.scheduledFor ? values.scheduledFor.toISOString() : null,
       sentAt: null,
       createdAt: new Date().toISOString(),
-      createdBy: 'admin@example.com', // mock
+      createdBy: 'admin',
       readCount: 0,
       totalCount: recipientCount,
       openRate: 0,
       approvalStatus: values.scheduledFor ? 'approved' : 'draft',
     };
     try {
-      const res = await fetch(`${API_BASE_URL}/notifications`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newNotification),
-      });
-      if (!res.ok) throw new Error('Failed to create');
-      const saved = await res.json();
-      setNotifications(prev => [saved, ...prev]);
-      addActivity('created', 'admin@example.com', values.title);
-      notifications.show({
-        title: 'Notification created',
-        message: `${values.title} has been saved as ${saved.status}.`,
+      const next = [newNotification, ...notifications];
+      persistLog(next);
+      addActivity('created', 'admin', values.title);
+      notify.show({
+        title: 'Notification saved',
+        message: `${values.title} stored locally. Use Send to deliver via API.`,
         color: 'green',
         icon: <IconCheck size={18} />
       });
       createModalHandlers.close();
       createForm.reset();
     } catch (error) {
-      notifications.show({
+      notify.show({
         title: 'Error',
         message: error.message,
         color: 'red',
@@ -327,16 +361,10 @@ export default function NotificationManagementPage() {
       totalCount: recipientCount,
     };
     try {
-      const res = await fetch(`${API_BASE_URL}/notifications/${editingNotification.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedNotification),
-      });
-      if (!res.ok) throw new Error('Failed to update');
-      const saved = await res.json();
-      setNotifications(prev => prev.map(n => n.id === saved.id ? saved : n));
+      const saved = { ...updatedNotification, id: editingNotification.id };
+      persistLog(notifications.map(n => n.id === saved.id ? saved : n));
       addActivity('updated', 'admin@example.com', values.title);
-      notifications.show({
+      notify.show({
         title: 'Notification updated',
         message: `${values.title} has been updated.`,
         color: 'blue',
@@ -344,7 +372,7 @@ export default function NotificationManagementPage() {
       });
       editModalHandlers.close();
     } catch (error) {
-      notifications.show({
+      notify.show({
         title: 'Error',
         message: error.message,
         color: 'red',
@@ -355,12 +383,9 @@ export default function NotificationManagementPage() {
   const deleteNotification = async () => {
     if (!selectedNotification) return;
     try {
-      await fetch(`${API_BASE_URL}/notifications/${selectedNotification.id}`, {
-        method: 'DELETE',
-      });
-      setNotifications(prev => prev.filter(n => n.id !== selectedNotification.id));
+      persistLog(notifications.filter(n => n.id !== selectedNotification.id));
       addActivity('deleted', 'admin@example.com', selectedNotification.title);
-      notifications.show({
+      notify.show({
         title: 'Notification deleted',
         message: `${selectedNotification.title} has been removed.`,
         color: 'red',
@@ -369,7 +394,7 @@ export default function NotificationManagementPage() {
       deleteModalHandlers.close();
       setSelectedNotification(null);
     } catch (error) {
-      notifications.show({
+      notify.show({
         title: 'Error',
         message: error.message,
         color: 'red',
@@ -391,23 +416,17 @@ export default function NotificationManagementPage() {
     };
     delete newNotification.id; // let the server assign a new id
     try {
-      const res = await fetch(`${API_BASE_URL}/notifications`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newNotification),
-      });
-      if (!res.ok) throw new Error('Failed to duplicate');
-      const saved = await res.json();
-      setNotifications(prev => [saved, ...prev]);
+      const saved = { ...newNotification, id: Date.now() };
+      persistLog([saved, ...notifications]);
       addActivity('duplicated', 'admin@example.com', notification.title);
-      notifications.show({
+      notify.show({
         title: 'Notification duplicated',
         message: `A copy of "${notification.title}" has been created.`,
         color: 'green',
         icon: <IconCopy size={18} />
       });
     } catch (error) {
-      notifications.show({
+      notify.show({
         title: 'Error',
         message: error.message,
         color: 'red',
@@ -417,29 +436,29 @@ export default function NotificationManagementPage() {
 
   const sendNow = async (notification) => {
     try {
+      const data = await postBulkNotification({
+        title: notification.title,
+        message: notification.message,
+        recipientType: notification.recipientType,
+        type: 'general',
+      });
       const updated = {
         ...notification,
         status: 'Sent',
         scheduledFor: null,
         sentAt: new Date().toISOString(),
+        totalCount: data?.sent ?? notification.totalCount,
       };
-      const res = await fetch(`${API_BASE_URL}/notifications/${notification.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated),
-      });
-      if (!res.ok) throw new Error('Failed to send');
-      const saved = await res.json();
-      setNotifications(prev => prev.map(n => n.id === saved.id ? saved : n));
+      persistLog(notifications.map(n => n.id === notification.id ? updated : n));
       addActivity('sent', 'admin@example.com', notification.title);
-      notifications.show({
+      notify.show({
         title: 'Notification sent',
         message: `"${notification.title}" has been sent.`,
         color: 'green',
         icon: <IconSend2 size={18} />
       });
     } catch (error) {
-      notifications.show({
+      notify.show({
         title: 'Error',
         message: error.message,
         color: 'red',
@@ -452,23 +471,16 @@ export default function NotificationManagementPage() {
     if (!notif) return;
     try {
       const updated = { ...notif, status: 'Scheduled', approvalStatus: 'approved' };
-      const res = await fetch(`${API_BASE_URL}/notifications/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated),
-      });
-      if (!res.ok) throw new Error('Failed to approve');
-      const saved = await res.json();
-      setNotifications(prev => prev.map(n => n.id === saved.id ? saved : n));
+      persistLog(notifications.map(n => n.id === id ? updated : n));
       addActivity('approved', 'admin@example.com', `Notification #${id}`);
-      notifications.show({
+      notify.show({
         title: 'Approved',
         message: 'Notification has been approved and scheduled.',
         color: 'green',
         icon: <IconCheck size={18} />
       });
     } catch (error) {
-      notifications.show({
+      notify.show({
         title: 'Error',
         message: error.message,
         color: 'red',
@@ -481,23 +493,16 @@ export default function NotificationManagementPage() {
     if (!notif) return;
     try {
       const updated = { ...notif, status: 'Draft', approvalStatus: 'rejected' };
-      const res = await fetch(`${API_BASE_URL}/notifications/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated),
-      });
-      if (!res.ok) throw new Error('Failed to reject');
-      const saved = await res.json();
-      setNotifications(prev => prev.map(n => n.id === saved.id ? saved : n));
+      persistLog(notifications.map(n => n.id === id ? updated : n));
       addActivity('rejected', 'admin@example.com', `Notification #${id}`);
-      notifications.show({
+      notify.show({
         title: 'Rejected',
         message: 'Notification has been rejected and moved to drafts.',
         color: 'red',
         icon: <IconX size={18} />
       });
     } catch (error) {
-      notifications.show({
+      notify.show({
         title: 'Error',
         message: error.message,
         color: 'red',
@@ -508,12 +513,9 @@ export default function NotificationManagementPage() {
   // ---------- BULK OPERATIONS ----------
   const bulkDelete = async () => {
     try {
-      await Promise.all(
-        selectedRows.map(id => fetch(`${API_BASE_URL}/notifications/${id}`, { method: 'DELETE' }))
-      );
-      setNotifications(prev => prev.filter(n => !selectedRows.includes(n.id)));
+      persistLog(notifications.filter(n => !selectedRows.includes(n.id)));
       addActivity('bulk_delete', 'System', `${selectedRows.length} notifications`);
-      notifications.show({
+      notify.show({
         title: 'Bulk delete',
         message: `${selectedRows.length} notifications deleted`,
         color: 'red',
@@ -521,7 +523,7 @@ export default function NotificationManagementPage() {
       });
       setSelectedRows([]);
     } catch (error) {
-      notifications.show({
+      notify.show({
         title: 'Error',
         message: error.message,
         color: 'red',
@@ -531,24 +533,27 @@ export default function NotificationManagementPage() {
 
   const bulkSend = async () => {
     try {
-      const updatePromises = selectedRows.map(async (id) => {
+      let next = [...notifications];
+      for (const id of selectedRows) {
         const notif = notifications.find(n => n.id === id);
-        if (!notif || notif.status === 'Sent') return null;
-        const updated = { ...notif, status: 'Sent', scheduledFor: null, sentAt: new Date().toISOString() };
-        return fetch(`${API_BASE_URL}/notifications/${id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updated),
-        }).then(res => res.json());
-      });
-      const results = await Promise.all(updatePromises);
-      results.forEach(saved => {
-        if (saved) {
-          setNotifications(prev => prev.map(n => n.id === saved.id ? saved : n));
-        }
-      });
+        if (!notif || notif.status === 'Sent') continue;
+        const data = await postBulkNotification({
+          title: notif.title,
+          message: notif.message,
+          recipientType: notif.recipientType,
+        });
+        const updated = {
+          ...notif,
+          status: 'Sent',
+          scheduledFor: null,
+          sentAt: new Date().toISOString(),
+          totalCount: data?.sent ?? notif.totalCount,
+        };
+        next = next.map(n => n.id === id ? updated : n);
+      }
+      persistLog(next);
       addActivity('bulk_send', 'System', `${selectedRows.length} notifications`);
-      notifications.show({
+      notify.show({
         title: 'Bulk send',
         message: `${selectedRows.length} notifications sent`,
         color: 'green',
@@ -557,7 +562,7 @@ export default function NotificationManagementPage() {
       setSelectedRows([]);
       bulkSendModalHandlers.close();
     } catch (error) {
-      notifications.show({
+      notify.show({
         title: 'Error',
         message: error.message,
         color: 'red',
@@ -578,7 +583,7 @@ export default function NotificationManagementPage() {
         scheduledFor: null,
       });
       templateModalHandlers.close();
-      notifications.show({
+      notify.show({
         title: 'Template loaded',
         message: `"${template.name}" applied.`,
         color: 'blue',
@@ -590,7 +595,7 @@ export default function NotificationManagementPage() {
   const saveAsTemplate = () => {
     const values = createForm.values;
     if (!values.title || !values.message) {
-      notifications.show({
+      notify.show({
         title: 'Cannot save',
         message: 'Title and message are required.',
         color: 'red',
@@ -610,7 +615,7 @@ export default function NotificationManagementPage() {
       channels: values.channels,
     };
     // setTemplates([...templates, newTemplate]); // uncomment if you make templates stateful
-    notifications.show({
+    notify.show({
       title: 'Template saved',
       message: `"${values.title}" added to templates.`,
       color: 'green',
@@ -644,7 +649,7 @@ export default function NotificationManagementPage() {
     a.download = `notifications_${dayjs().format('YYYY-MM-DD')}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
-    notifications.show({
+    notify.show({
       title: 'Exported',
       message: `${filteredNotifications.length} notifications exported`,
       color: 'green',

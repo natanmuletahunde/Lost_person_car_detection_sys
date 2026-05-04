@@ -5,7 +5,7 @@ import {
   Box, Title, Text, Paper, SimpleGrid, Group, Button,
   Table, Badge, ActionIcon, Tooltip, Select, TextInput,
   Modal, Stack, Grid, Divider, Avatar, Pagination,
-  Menu, UnstyledButton, Textarea, Rating, Alert,
+  Menu, UnstyledButton, Textarea, Rating, Alert, Loader,
   useMantineTheme, useMantineColorScheme
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
@@ -21,94 +21,40 @@ import {
   IconMailForward
 } from '@tabler/icons-react';
 import Link from 'next/link';
+import { adminFetch, adminDelete } from '@/app/lib/adminApi';
 
 // Helper to get dynamic background/color values
 const getBg = (colorScheme, light, dark) => (colorScheme === 'dark' ? dark : light);
 const getTextColor = (colorScheme, light, dark) => (colorScheme === 'dark' ? dark : light);
 
-// ---------- MOCK DATA ----------
-const INITIAL_FEEDBACK = [
-  {
-    id: 1,
-    user: { name: 'John Smith', email: 'john.smith@gmail.com', avatar: null },
-    rating: 5,
-    comment: 'Excellent service! The system is very intuitive and the support team responded quickly.',
-    date: '2026-02-12T10:30:00',
-    status: 'Resolved',
-    category: 'General',
-    response: 'Thank you for your feedback! We’re glad you had a great experience.'
-  },
-  {
-    id: 2,
-    user: { name: 'Olivia Bennett', email: 'ollyben@gmail.com', avatar: null },
-    rating: 4,
-    comment: 'Works well but the mobile app could be faster. Sometimes it lags when loading maps.',
-    date: '2026-02-11T14:45:00',
-    status: 'Pending',
-    category: 'Mobile App',
-    response: null
-  },
-  {
-    id: 3,
-    user: { name: 'Daniel Warren', email: 'dwarren3@gmail.com', avatar: null },
-    rating: 2,
-    comment: 'Billing issue – I was charged twice this month. Please fix this.',
-    date: '2026-02-10T09:15:00',
-    status: 'Pending',
-    category: 'Billing',
-    response: null
-  },
-  {
-    id: 4,
-    user: { name: 'Chloe Hayes', email: 'chloehhye@gmail.com', avatar: null },
-    rating: 5,
-    comment: 'Love the new dashboard! Very clean and easy to use.',
-    date: '2026-02-09T16:20:00',
-    status: 'Resolved',
-    category: 'UI/UX',
-    response: 'Thanks Chloe! We appreciate the kind words.'
-  },
-  {
-    id: 5,
-    user: { name: 'Marcus Reed', email: 'reeds777@gmail.com', avatar: null },
-    rating: 3,
-    comment: 'Feature request: dark mode. It would be easier on the eyes at night.',
-    date: '2026-02-08T11:05:00',
-    status: 'Pending',
-    category: 'Feature Request',
-    response: null
-  },
-  {
-    id: 6,
-    user: { name: 'Alice Cooper', email: 'alice.c@gmail.com', avatar: null },
-    rating: 5,
-    comment: 'Customer support was amazing – helped me set up in 5 minutes!',
-    date: '2026-02-07T13:30:00',
-    status: 'Resolved',
-    category: 'Support',
-    response: 'We’re happy to help! 😊'
-  },
-  {
-    id: 7,
-    user: { name: 'Bob Marley', email: 'bob.m@gmail.com', avatar: null },
-    rating: 4,
-    comment: 'Reliable tracking, but the price is a bit high for the basic plan.',
-    date: '2026-02-06T08:50:00',
-    status: 'Pending',
-    category: 'Pricing',
-    response: null
-  },
-  {
-    id: 8,
-    user: { name: 'Emma Watson', email: 'emma.w@gmail.com', avatar: null },
-    rating: 5,
-    comment: 'The API documentation is very thorough. Integrated without any issues.',
-    date: '2026-02-05T15:40:00',
-    status: 'Resolved',
-    category: 'API',
-    response: 'Great to hear! Let us know if you need any assistance.'
-  },
-];
+const PRIORITY_RATING = { low: 2, medium: 3, high: 4, urgent: 5 };
+
+const mapApiFeedback = (item) => {
+  const u = item.user;
+  const name = u ? `${u.firstName || ''} ${u.lastName || ''}`.trim() : '';
+  const email = u?.email || '';
+  const st = item.status || 'pending';
+  const statusLabel =
+    st === 'pending'
+      ? 'Pending'
+      : st === 'resolved'
+        ? 'Resolved'
+        : st === 'reviewed'
+          ? 'Reviewed'
+          : st === 'closed'
+            ? 'Closed'
+            : st;
+  return {
+    id: item._id,
+    user: { name: name || email || 'User', email, avatar: null },
+    rating: PRIORITY_RATING[item.priority] ?? 3,
+    comment: item.message || item.subject || '',
+    date: item.createdAt,
+    status: statusLabel,
+    category: item.type || 'general',
+    response: item.response?.text ?? null,
+  };
+};
 
 // ---------- HELPER FUNCTIONS ----------
 const formatDate = (dateString) => {
@@ -144,7 +90,8 @@ export default function FeedbackManagementPage() {
   const primaryText = getTextColor(colorScheme, '#2B3674', theme.colors.gray[3]);
 
   // ---------- STATE ----------
-  const [feedback, setFeedback] = useState(INITIAL_FEEDBACK);
+  const [feedback, setFeedback] = useState([]);
+  const [loadingFeedback, setLoadingFeedback] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState(null);
   const [ratingFilter, setRatingFilter] = useState(null);
@@ -154,6 +101,30 @@ export default function FeedbackManagementPage() {
   const [selectedFeedback, setSelectedFeedback] = useState(null);
   const [viewingFeedback, setViewingFeedback] = useState(null);
   const [replyingFeedback, setReplyingFeedback] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoadingFeedback(true);
+        const rows = await adminFetch('/admin/feedback');
+        if (cancelled || !Array.isArray(rows)) return;
+        setFeedback(rows.map(mapApiFeedback));
+      } catch (e) {
+        console.error(e);
+        notifications.show({
+          title: 'Error',
+          message: 'Could not load feedback',
+          color: 'red',
+        });
+      } finally {
+        if (!cancelled) setLoadingFeedback(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // ---------- MODALS ----------
   const [viewModalOpened, viewModalHandlers] = useDisclosure(false);
@@ -171,7 +142,7 @@ export default function FeedbackManagementPage() {
     const total = feedback.length;
     const resolved = feedback.filter(f => f.status === 'Resolved').length;
     const pending = feedback.filter(f => f.status === 'Pending').length;
-    const avgRating = feedback.reduce((acc, f) => acc + f.rating, 0) / total || 0;
+    const avgRating = total ? feedback.reduce((acc, f) => acc + f.rating, 0) / total : 0;
     return { total, resolved, pending, avgRating: avgRating.toFixed(1) };
   }, [feedback]);
 
@@ -225,32 +196,50 @@ export default function FeedbackManagementPage() {
   }, [searchQuery, statusFilter, ratingFilter, categoryFilter, pageSize]);
 
   // ---------- CRUD OPERATIONS ----------
-  const replyToFeedback = (values) => {
-    setFeedback(prev => prev.map(item =>
-      item.id === replyingFeedback.id
-        ? { ...item, response: values.response, status: 'Resolved' }
-        : item
-    ));
-    notifications.show({
-      title: 'Response sent',
-      message: `Your reply to ${replyingFeedback.user.name} has been saved.`,
-      color: 'green',
-      icon: <IconCheck size={18} />
-    });
-    replyModalHandlers.close();
+  const replyToFeedback = async (values) => {
+    if (!replyingFeedback) return;
+    try {
+      await adminFetch(`/admin/feedback/${replyingFeedback.id}/respond`, {
+        method: 'PATCH',
+        body: JSON.stringify({ text: values.response, status: 'resolved' }),
+      });
+      setFeedback((prev) =>
+        prev.map((item) =>
+          item.id === replyingFeedback.id
+            ? { ...item, response: values.response, status: 'Resolved' }
+            : item
+        )
+      );
+      notifications.show({
+        title: 'Response sent',
+        message: `Your reply to ${replyingFeedback.user.name} has been saved.`,
+        color: 'green',
+        icon: <IconCheck size={18} />,
+      });
+      replyModalHandlers.close();
+    } catch (e) {
+      console.error(e);
+      notifications.show({ title: 'Error', message: 'Could not send response', color: 'red' });
+    }
   };
 
-  const deleteFeedback = () => {
+  const deleteFeedback = async () => {
     if (!selectedFeedback) return;
-    setFeedback(prev => prev.filter(item => item.id !== selectedFeedback.id));
-    notifications.show({
-      title: 'Feedback deleted',
-      message: 'The feedback has been removed.',
-      color: 'red',
-      icon: <IconTrash size={18} />
-    });
-    deleteModalHandlers.close();
-    setSelectedFeedback(null);
+    try {
+      await adminDelete(`/admin/feedback/${selectedFeedback.id}`);
+      setFeedback((prev) => prev.filter((item) => item.id !== selectedFeedback.id));
+      notifications.show({
+        title: 'Feedback deleted',
+        message: 'The feedback has been removed.',
+        color: 'red',
+        icon: <IconTrash size={18} />,
+      });
+      deleteModalHandlers.close();
+      setSelectedFeedback(null);
+    } catch (e) {
+      console.error(e);
+      notifications.show({ title: 'Error', message: 'Could not delete', color: 'red' });
+    }
   };
 
   const resolveFeedback = (id) => {
@@ -308,6 +297,16 @@ export default function FeedbackManagementPage() {
       replyForm.resetDirty();
     }
   }, [replyingFeedback]);
+
+  if (loadingFeedback && feedback.length === 0) {
+    return (
+      <Box bg={mainBg} style={{ minHeight: '100vh' }} p="xl">
+        <Group justify="center" mt={120}>
+          <Loader size="xl" />
+        </Group>
+      </Box>
+    );
+  }
 
   return (
     <Box bg={mainBg} style={{ minHeight: '100vh' }} p="xl">
@@ -421,7 +420,7 @@ export default function FeedbackManagementPage() {
             />
             <Select
               placeholder="Status"
-              data={['All', 'Resolved', 'Pending']}
+              data={['All', 'Pending', 'Resolved', 'Reviewed', 'Closed']}
               value={statusFilter}
               onChange={setStatusFilter}
               clearable
