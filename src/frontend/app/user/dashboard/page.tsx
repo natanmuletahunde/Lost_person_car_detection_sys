@@ -15,12 +15,14 @@ import DashboardHeader from "./DashboardHeader";
 import DashboardHero from "./DashboardHero";
 import DashboardMainContent from "./DashboardMainContent";
 import DashboardBottomSections from "./DashboardBottomSections";
+import { apiClient } from "../../lib/apiClient";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001";
-const MISSING_PERSONS_API = `${API_BASE_URL}/missingPersons`;
-const MISSING_VEHICLES_API = `${API_BASE_URL}/missingVehicles`;
-const SIGHTINGS_API = `${API_BASE_URL}/sightings`;
-const NOTIFICATIONS_API = `${API_BASE_URL}/notifications`;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api/v1";
+const MISSING_PERSONS_API = `${API_BASE_URL}/missing-persons`;
+const MISSING_VEHICLES_API = `${API_BASE_URL}/missing-vehicles`;
+const MY_MISSING_PERSONS_API = `${API_BASE_URL}/missing-persons/my-reports`;
+const MY_MISSING_VEHICLES_API = `${API_BASE_URL}/missing-vehicles/my-reports`;
+const MY_SIGHTINGS_API = `${API_BASE_URL}/sightings/my-sightings`;
 
 export default function Dashboard() {
   const router = useRouter();
@@ -37,6 +39,12 @@ export default function Dashboard() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [dataLoading, setDataLoading] = useState(false);
+
+  const extractArray = (payload: any) => {
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.data)) return payload.data;
+    return [];
+  };
 
   // ---------- Helper functions ----------
   const getUserInitials = (firstName, lastName) => {
@@ -71,7 +79,9 @@ export default function Dashboard() {
 
   const getUserRoute = (path) => {
     if (!user) return path;
-    const publicRoutes = ["/login", "/signup", "/how-it-works", "/"];
+    if (path === "/login") return "/authentication/login";
+    if (path === "/signup") return "/authentication/signup";
+    const publicRoutes = ["/"];
     if (publicRoutes.includes(path)) return path;
     if (path.startsWith("/user")) return path;
     return `/user${path}`;
@@ -83,7 +93,7 @@ export default function Dashboard() {
       const userData = localStorage.getItem("currentUser");
 
       if (!userData) {
-        router.push("/login");
+        router.push("/authentication/login");
         return;
       }
 
@@ -96,7 +106,7 @@ export default function Dashboard() {
         }
         setUser(parsedUser);
       } catch (error) {
-        router.push("/login");
+        router.push("/authentication/login");
         return;
       }
       setLoading(false);
@@ -120,17 +130,17 @@ export default function Dashboard() {
       setDataLoading(true);
       try {
         const [personsRes, vehiclesRes] = await Promise.all([
-          fetch(MISSING_PERSONS_API),
-          fetch(MISSING_VEHICLES_API),
+          apiClient(MISSING_PERSONS_API),
+          apiClient(MISSING_VEHICLES_API),
         ]);
 
         if (personsRes.ok) {
-          const persons = await personsRes.json();
-          setMissingPersons(persons.filter((p) => p.status === "Active"));
+          const persons = extractArray(await personsRes.json());
+          setMissingPersons(persons.filter((p: any) => p.status === "Active"));
         }
         if (vehiclesRes.ok) {
-          const vehicles = await vehiclesRes.json();
-          setMissingVehicles(vehicles.filter((v) => v.status === "Active"));
+          const vehicles = extractArray(await vehiclesRes.json());
+          setMissingVehicles(vehicles.filter((v: any) => v.status === "Active"));
         }
       } catch (error) {
         console.error("Error fetching missing data:", error);
@@ -146,11 +156,12 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchSightings = async () => {
       try {
-        const res = await fetch(SIGHTINGS_API);
+        const res = await apiClient(MY_SIGHTINGS_API);
         if (res.ok) {
-          const data = await res.json();
+          const payload = await res.json();
+          const data = extractArray(payload);
           const sorted = data.sort(
-            (a, b) => new Date(b.reportDate) - new Date(a.reportDate)
+            (a: any, b: any) => new Date(b.reportedAt || b.reportDate).getTime() - new Date(a.reportedAt || a.reportDate).getTime()
           );
           setRecentSightings(sorted.slice(0, 5));
         }
@@ -161,55 +172,30 @@ export default function Dashboard() {
     fetchSightings();
   }, []);
 
-  // ---------- Fetch notifications ----------
+  // ---------- Fetch notifications (placeholder until user endpoint exists) ----------
   useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const res = await fetch(NOTIFICATIONS_API);
-        if (res.ok) {
-          const data = await res.json();
-          setNotifications(data);
-          setUnreadCount(data.filter((n) => !n.read).length);
-        }
-      } catch (error) {
-        console.error("Error fetching notifications:", error);
-        // Fallback demo data
-        const demo = [
-          { id: 1, message: "New sighting of your reported car", time: "5 min ago", read: false },
-          { id: 2, message: "Case #123 status changed to Resolved", time: "1 hour ago", read: false },
-          { id: 3, message: "Someone commented on your report", time: "yesterday", read: true },
-        ];
-        setNotifications(demo);
-        setUnreadCount(demo.filter((n) => !n.read).length);
-      }
-    };
-    fetchNotifications();
+    setNotifications([]);
+    setUnreadCount(0);
   }, []);
 
-  // ---------- Fetch user's reports if logged in ----------
+  // ---------- Fetch only this user's registered cases ----------
   useEffect(() => {
     const fetchUserReports = async () => {
       if (!user) return;
 
       try {
         const [personsRes, vehiclesRes] = await Promise.all([
-          fetch(MISSING_PERSONS_API),
-          fetch(MISSING_VEHICLES_API),
+          apiClient(MY_MISSING_PERSONS_API),
+          apiClient(MY_MISSING_VEHICLES_API),
         ]);
 
-        let reports = [];
+        let reports: any[] = [];
 
         if (personsRes.ok) {
-          const persons = await personsRes.json();
-          reports = reports.concat(
-            persons.filter((p) => p.reportedBy?.userId === user.id)
-          );
+          reports = reports.concat(extractArray(await personsRes.json()));
         }
         if (vehiclesRes.ok) {
-          const vehicles = await vehiclesRes.json();
-          reports = reports.concat(
-            vehicles.filter((v) => v.reportedBy?.userId === user.id)
-          );
+          reports = reports.concat(extractArray(await vehiclesRes.json()));
         }
 
         setUserReports(reports);
@@ -224,8 +210,11 @@ export default function Dashboard() {
   const handleLogout = () => {
     localStorage.removeItem("isAuthenticated");
     localStorage.removeItem("currentUser");
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
     setUser(null);
-    router.push("/login");
+    router.push("/authentication/login");
   };
 
   // Show loader while checking authentication
