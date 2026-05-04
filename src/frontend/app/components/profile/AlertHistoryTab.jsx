@@ -16,22 +16,16 @@ export default function AlertHistoryTab({ colorScheme }) {
   useEffect(() => {
     const fetchAlerts = async () => {
       try {
-        const userData = localStorage.getItem("currentUser");
         const token = localStorage.getItem("accessToken") || localStorage.getItem("token");
         if (!token) throw new Error("No token found");
-        let currentUserId = null;
-        if (userData) {
-          const parsedUser = JSON.parse(userData);
-          currentUserId = parsedUser.id;
-        }
 
         const requestHeaders = {
           Authorization: `Bearer ${token}`,
         };
 
         const [vehiclesRes, personsRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/missing-vehicles`, { headers: requestHeaders }),
-          fetch(`${API_BASE_URL}/missing-persons`, { headers: requestHeaders }),
+          fetch(`${API_BASE_URL}/missing-vehicles/my-reports`, { headers: requestHeaders }),
+          fetch(`${API_BASE_URL}/missing-persons/my-reports`, { headers: requestHeaders }),
         ]);
 
         if (!vehiclesRes.ok || !personsRes.ok) {
@@ -43,11 +37,7 @@ export default function AlertHistoryTab({ colorScheme }) {
         const vehicles = Array.isArray(vehiclesData?.data) ? vehiclesData.data : [];
         const persons = Array.isArray(personsData?.data) ? personsData.data : [];
 
-        const isMine = (item) =>
-          currentUserId && String(item?.reportedBy?.userId || "") === String(currentUserId);
-
-        // Transform and combine alerts
-        const vehicleAlerts = vehicles.filter(isMine).map((v) => ({
+        const vehicleAlerts = vehicles.map((v) => ({
           id: v._id || v.id,
           type: "Vehicle",
           location: v.location || "Unknown",
@@ -55,7 +45,7 @@ export default function AlertHistoryTab({ colorScheme }) {
           status: v.status || "Active",
         }));
 
-        const personAlerts = persons.filter(isMine).map((p) => ({
+        const personAlerts = persons.map((p) => ({
           id: p._id || p.id,
           type: "Person",
           location: p.location || "Unknown",
