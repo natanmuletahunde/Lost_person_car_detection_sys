@@ -27,12 +27,17 @@ const reportSighting = async (req, res, next) => {
     let reporter = null;
 
     if (type === 'person' && name) {
+      const nameParts = name.trim().split(/\s+/);
+      const nameQueries = nameParts.map(part => ({
+        $or: [
+          { firstName: { $regex: part, $options: 'i' } },
+          { lastName: { $regex: part, $options: 'i' } }
+        ]
+      }));
+
       matchedCase = await MissingPerson.findOne({
         status: 'Active',
-        $or: [
-          { firstName: { $regex: name, $options: 'i' } },
-          { lastName: { $regex: name, $options: 'i' } }
-        ]
+        $and: nameQueries
       });
       if (matchedCase) reporter = matchedCase.reportedBy;
     } else if (type === 'vehicle' && plateNumber) {

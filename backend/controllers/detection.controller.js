@@ -1,153 +1,206 @@
 const Detection = require('../models/Detection');
 const MissingPerson = require('../models/MissingPerson');
-const MissingVehicle = require('../models/MissingVehicle');
 const bot = require('../telegramBot');
+const axios = require('axios');
 const { SerialPort } = require('serialport');
 
 // ==============================
-// GSM SETUP (optional)
+// GSM SETUP
 // ==============================
 let gsmPort;
 
 try {
   gsmPort = new SerialPort({
-    path: process.env.SERIAL_PORT || 'COM5',
+    path: process.env.SERIAL_PORT || "COM5",
     baudRate: 9600,
   });
 
-  gsmPort.on('open', () => console.log('📡 GSM connected'));
-  gsmPort.on('error', (err) => console.log('GSM error:', err.message));
+  gsmPort.on('open', () => {
+    console.log('📡 GSM SMS Module Connected');
+  });
+
+  gsmPort.on('error', (err) => {
+    console.log('⚠️ GSM Error:', err.message);
+  });
+
 } catch (err) {
   console.log('⚠️ GSM not available');
 }
 
 // ==============================
-// CREATE DETECTION (SMART CORE)
+// LOCATION CACHE
+// ==============================
+let cachedLocation = { lat: null, lon: null, timestamp: 0 };
+
+async function getCurrentLocation() {
+  const now = Date.now();
+
+  if (cachedLocation.lat && (now - cachedLocation.timestamp < 30 * 60 * 1000)) {
+    return cachedLocation;
+  }
+
+  try {
+    const res = await axios.get(
+      'http://ip-api.com/json/?fields=lat,lon,status,message',
+      { timeout: 8000 }
+    );
+
+    if (res.data.status === "success") {
+      cachedLocation = {
+        lat: res.data.lat,
+        lon: res.data.lon,
+        timestamp: now
+      };
+
+      console.log(`📍 Real location fetched: ${res.data.lat}, ${res.data.lon}`);
+      return cachedLocation;
+    }
+  } catch (error) {
+    console.warn('⚠️ IP Geolocation failed:', error.message);
+  }
+
+  return { lat: 8.570883, lon: 39.281890 };
+}
+
+// ==============================
+// SAFE SMS FUNCTION (FIXED)
+// ==============================
+function sendSMS(phone, message) {
+  if (!gsmPort || !gsmPort.isOpen) {
+    console.log('⚠️ GSM Port not open');
+    return;
+  }
+
+  // HARD CLEAN MESSAGE (SIM900 SAFE)
+  let cleanMessage = message
+    .replace(/[^\x00-\x7F]/g, '') // remove emojis/non-ascii
+    .replace(/\s+/g, ' ')         // remove extra spaces
+    .trim();
+
+  // LIMIT LENGTH (CRITICAL FIX)
+  if (cleanMessage.length > 150) {
+    cleanMessage = cleanMessage.substring(0, 150) + '...';
+  }
+
+  const command = `${phone}|${cleanMessage}\n`;
+
+  console.log('📨 Sending to Arduino:', command);
+
+  gsmPort.write(command, (err) => {
+    if (err) {
+      console.error('Write Error:', err.message);
+    } else {
+      console.log('✅ Command sent to Arduino');
+    }
+  });
+}
+
+// ==============================
+// CREATE DETECTION
 // ==============================
 exports.createDetection = async (req, res) => {
   try {
     const {
       type,
+      registrationId,
       name,
-      licensePlate,
-      location,
       detectionImage,
       confidence,
       behavior
     } = req.body;
 
-    // 🧪 Basic validation
-    if (!type || !location || confidence === undefined) {
+    if (!registrationId || !detectionImage) {
       return res.status(400).json({
         success: false,
-        message: 'type, location and confidence are required'
+        message: 'registrationId and detectionImage are required'
       });
     }
 
-    // 🎯 Ignore weak detections
-    if (confidence < 0.5) {
-      return res.status(200).json({
+    const matchedPerson = await MissingPerson.findById(registrationId)
+      .populate('reportedBy');
+
+    if (!matchedPerson) {
+      return res.status(404).json({
         success: false,
-        message: 'Low confidence ignored'
+        message: 'Missing person not found'
       });
     }
 
-    let matchedPerson = null;
-    let matchedVehicle = null;
-    let reporter = null;
+    const { lat, lon } = await getCurrentLocation();
+    const locationString = `${lat}, ${lon}`;
 
-    // ==============================
-    // 🔍 PERSON MATCHING
-    // ==============================
-    if (type === 'Person' && name) {
-      matchedPerson = await MissingPerson.findOne({
-        status: 'Active',
-        $or: [
-          { firstName: { $regex: name, $options: 'i' } },
-          { lastName: { $regex: name, $options: 'i' } }
-        ]
-      });
+    const mapsLink = `https://maps.google.com/?q=${lat},${lon}`;
 
-      if (matchedPerson) {
-        reporter = matchedPerson.reportedBy;
-      }
-    }
-
-    // ==============================
-    // 🚗 VEHICLE MATCHING
-    // ==============================
-    if (type === 'Vehicle' && licensePlate) {
-      matchedVehicle = await MissingVehicle.findOne({
-        plateNumber: licensePlate.toUpperCase(),
-        status: 'Active'
-      });
-
-      if (matchedVehicle) {
-        reporter = matchedVehicle.reportedBy;
-      }
-    }
-
-    // ==============================
-    // 💾 SAVE DETECTION
-    // ==============================
     const detection = new Detection({
-      type,
-      name: name || null,
-      licensePlate: licensePlate || null,
-      location,
-      detectionImage: detectionImage || null,
-      confidence,
+      type: type || 'Person',
+      registrationId,
+      name: name || `${matchedPerson.firstName} ${matchedPerson.lastName}`,
+      location: locationString,
+      latitude: lat,
+      longitude: lon,
+      locationLink: mapsLink,
+      detectionImage,
+      confidence: Number(confidence) || 0.6,
       behavior: behavior || 'Detected',
-      priority: confidence > 0.7 ? 'High' : 'Normal',
-      personId: matchedPerson?._id || null,
-      vehicleId: matchedVehicle?._id || null
+      priority: (confidence || 0) > 0.7 ? 'High' : 'Normal',
+      status: 'Pending'
     });
 
     await detection.save();
 
-    // ==============================
-    // 🚨 ALERT SYSTEM (ONLY IF MATCH FOUND)
-    // ==============================
-    if (reporter) {
-      const message = `
-🚨 MATCH FOUND!
+    console.log(`✅ Detection saved for ${detection.name}`);
 
-Type: ${type}
-${name ? `👤 Name: ${name}` : ''}
-${licensePlate ? `🚗 Plate: ${licensePlate}` : ''}
+    const reporter = matchedPerson.reportedBy;
 
-📍 Location: ${location}
-🎯 Confidence: ${(confidence * 100).toFixed(1)}%
-🕒 ${new Date().toLocaleString()}
-`;
+    // ===================== TELEGRAM =====================
+    if (reporter && reporter.telegramChatId) {
 
-      // 📲 TELEGRAM
-      if (reporter.telegramUsername) {
-        try {
-          await bot.sendMessage(`@${reporter.telegramUsername}`, message);
-        } catch (err) {
-          console.log('Telegram failed:', err.message);
-        }
+      const caption = `MISSING PERSON DETECTED!
+Name: ${detection.name}
+Location: ${locationString}
+Confidence: ${(confidence * 100).toFixed(1)}%
+Time: ${new Date().toLocaleString()}
+Maps: ${mapsLink}`;
+
+      try {
+        const base64Data = detectionImage.replace(/^data:image\/\w+;base64,/, "");
+        const photoBuffer = Buffer.from(base64Data, 'base64');
+
+        await bot.sendPhoto(reporter.telegramChatId, photoBuffer, {
+          caption,
+          parse_mode: 'Markdown'
+        });
+
+        console.log('✅ Telegram Photo Alert Sent');
+
+      } catch (err) {
+        console.error('❌ Telegram Error:', err.message);
+        await bot.sendMessage(reporter.telegramChatId, caption);
       }
-
-      // 📡 SMS (GSM)
-      if (reporter.phone && gsmPort?.isOpen) {
-        try {
-          gsmPort.write(`${reporter.phone}|${message}\n`);
-        } catch (err) {
-          console.log('SMS failed:', err.message);
-        }
-      }
-
-      console.log('🚨 Alert sent to reporter');
     }
 
-    // ==============================
-    // ✅ RESPONSE
-    // ==============================
+    // ===================== SMS (FIXED) =====================
+    if (reporter && reporter.phone) {
+
+      const smsMessage =
+        `ALERT! ${detection.name} ` +
+        `Conf:${(confidence * 100).toFixed(0)}% ` +
+        `Loc:${lat},${lon} ` +
+        `Map:${mapsLink}`;
+
+      console.log("DEBUG - Sending SMS to:", reporter.phone);
+      console.log("DEBUG - SMS Length:", smsMessage.length);
+      console.log("DEBUG - SMS Content:", smsMessage);
+
+      sendSMS(reporter.phone, smsMessage);
+
+    } else {
+      console.log('⚠️ No phone number found for reporter');
+    }
+
     res.status(201).json({
       success: true,
-      message: reporter ? 'Match found and alert sent' : 'Detection stored',
+      message: 'Detection saved successfully',
       data: detection
     });
 
@@ -161,30 +214,19 @@ ${licensePlate ? `🚗 Plate: ${licensePlate}` : ''}
 };
 
 // ==============================
-// GET ALL DETECTIONS
+// GET DETECTIONS
 // ==============================
 exports.getDetections = async (req, res) => {
   try {
-    const detections = await Detection.find()
-      .populate('personId')
-      .populate('vehicleId')
-      .sort({ createdAt: -1 });
-
-    res.json({
-      success: true,
-      data: detections
-    });
-
+    const detections = await Detection.find().sort({ createdAt: -1 });
+    res.json({ success: true, data: detections });
   } catch (err) {
-    res.status(500).json({
-      success: false,
-      message: err.message
-    });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
 // ==============================
-// UPDATE STATUS
+// UPDATE DETECTION
 // ==============================
 exports.updateDetection = async (req, res) => {
   try {
@@ -204,7 +246,7 @@ exports.updateDetection = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Detection updated',
+      message: 'Detection updated successfully',
       data: detection
     });
 

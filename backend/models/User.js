@@ -87,6 +87,10 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  telegramChatId: {
+    type: String,
+    default: null
+  },
   updatedAt: {
     type: Date,
     default: Date.now,

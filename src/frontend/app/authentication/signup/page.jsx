@@ -1,5 +1,9 @@
 'use client';
 
+function getBg(colorScheme, light, dark) {
+  return colorScheme === 'dark' ? dark : light;
+}
+
 import {
   Container,
   Paper,
@@ -9,7 +13,12 @@ import {
   Title,
   Grid,
   Box,
+  rem,
+  useMantineTheme,
+  useMantineColorScheme,
+  Text,
 } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { IconCheck, IconX } from '@tabler/icons-react';
 import Image from 'next/image';
 import { useState } from 'react';
@@ -18,6 +27,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import { notifications } from '@mantine/notifications';
+import Link from 'next/link';
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api/v1';
@@ -41,6 +51,9 @@ const signupSchema = z
 export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const theme = useMantineTheme();
+  const { colorScheme } = useMantineColorScheme();
+  const isMobile = useMediaQuery('(max-width: 576px)');
 
   const {
     register,
@@ -94,37 +107,130 @@ export default function SignupPage() {
     }
   };
 
+  const mainBg = getBg(colorScheme, '#EAF2FF', theme.colors.dark[7]);
+  const paperBg = getBg(colorScheme, '#dbeafe', theme.colors.blue[9]);
+  const textColor = getBg(colorScheme, undefined, theme.colors.gray[3]);
+
   return (
-    <Container size={500}>
-      <Paper p="xl">
-        <Box ta="center">
-          <Image src="/logo.jpg" alt="logo" width={90} height={70} />
-        </Box>
+    <Box
+      style={{
+        minHeight: '100vh',
+        backgroundColor: mainBg,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: rem(16),
+      }}
+    >
+      <Container size={500}>
+        <Paper radius="lg" p={isMobile ? 'md' : 'xl'} shadow="md" bg={paperBg}>
+          <Box ta="center" mb="sm">
+            <Image
+              src="/logo.jpg"
+              alt="Logo"
+              width={isMobile ? 80 : 100}
+              height={isMobile ? 60 : 75}
+              style={{ objectFit: 'contain', borderRadius: 8 }}
+              priority
+            />
+          </Box>
 
-        <Title ta="center">Sign Up</Title>
+          <Title ta="center" fw={700} c={textColor}>
+            JOIN US !!
+          </Title>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <Grid>
-            <Grid.Col span={6}>
-              <TextInput label="First Name" {...register('firstName')} error={errors.firstName?.message} />
-            </Grid.Col>
-            <Grid.Col span={6}>
-              <TextInput label="Last Name" {...register('lastName')} error={errors.lastName?.message} />
-            </Grid.Col>
-          </Grid>
+          <Title ta="center" order={4} mb="md" c={textColor}>
+            Sign Up
+          </Title>
 
-          <TextInput mt="md" label="Email" {...register('email')} error={errors.email?.message} />
-          <TextInput mt="md" label="Phone" {...register('phone')} error={errors.phone?.message} />
-          <TextInput mt="md" label="Telegram Username (Optional)" description="To receive direct alerts via Telegram" {...register('telegramUsername')} error={errors.telegramUsername?.message} />
+          <Text ta="center" mb="sm" c="dimmed">
+            Please fill in the details to create your account
+          </Text>
 
-          <PasswordInput mt="md" label="Password" {...register('password')} error={errors.password?.message} />
-          <PasswordInput mt="md" label="Confirm Password" {...register('confirmPassword')} error={errors.confirmPassword?.message} />
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <Grid gutter="md">
+              <Grid.Col span={6}>
+                <TextInput
+                  label="First Name"
+                  placeholder="First name"
+                  {...register('firstName')}
+                  error={errors.firstName?.message}
+                  disabled={loading}
+                />
+              </Grid.Col>
+              <Grid.Col span={6}>
+                <TextInput
+                  label="Last Name"
+                  placeholder="Last name"
+                  {...register('lastName')}
+                  error={errors.lastName?.message}
+                  disabled={loading}
+                />
+              </Grid.Col>
+            </Grid>
 
-          <Button fullWidth mt="xl" type="submit" loading={loading}>
-            Create Account
-          </Button>
-        </form>
-      </Paper>
-    </Container>
+            <TextInput
+              mt="md"
+              label="Email"
+              placeholder="example@email.com"
+              {...register('email')}
+              error={errors.email?.message}
+              disabled={loading}
+            />
+            <TextInput
+              mt="md"
+              label="Phone"
+              placeholder="+251 9xx xxx xxx"
+              {...register('phone')}
+              error={errors.phone?.message}
+              disabled={loading}
+            />
+            <TextInput
+              mt="md"
+              label="Telegram Username (Optional)"
+              placeholder="@username"
+              description="To receive direct alerts via Telegram"
+              {...register('telegramUsername')}
+              error={errors.telegramUsername?.message}
+              disabled={loading}
+            />
+
+            <PasswordInput
+              mt="md"
+              label="Password"
+              placeholder="Enter your password"
+              {...register('password')}
+              error={errors.password?.message}
+              disabled={loading}
+            />
+            <PasswordInput
+              mt="md"
+              label="Confirm Password"
+              placeholder="Confirm your password"
+              {...register('confirmPassword')}
+              error={errors.confirmPassword?.message}
+              disabled={loading}
+            />
+
+            <Button
+              fullWidth
+              mt="xl"
+              type="submit"
+              loading={loading}
+              disabled={loading}
+            >
+              {loading ? 'Creating Account...' : 'Create Account'}
+            </Button>
+          </form>
+
+          <Text ta="center" mt="md" c="dimmed">
+            Already have an account?{' '}
+            <Link href="/authentication/login" style={{ color: '#228be6', textDecoration: 'none' }}>
+              Login
+            </Link>
+          </Text>
+        </Paper>
+      </Container>
+    </Box>
   );
 }

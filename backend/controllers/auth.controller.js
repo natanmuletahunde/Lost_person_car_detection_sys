@@ -131,7 +131,7 @@ const getMe = async (req, res, next) => {
 // ================= UPDATE PROFILE =================
 const updateProfile = async (req, res, next) => {
   try {
-    const { firstName, lastName, phone, address, profileImage } = req.body;
+    const { firstName, lastName, phone, address, profileImage, telegramUsername } = req.body;
 
     const updateData = {};
     if (firstName) updateData.firstName = firstName;
@@ -139,6 +139,7 @@ const updateProfile = async (req, res, next) => {
     if (phone) updateData.phone = phone;
     if (address !== undefined) updateData.address = address;
     if (profileImage !== undefined) updateData.profileImage = profileImage;
+    if (telegramUsername !== undefined) updateData.telegramUsername = telegramUsername;
 
     const user = await User.findByIdAndUpdate(
       req.user._id,

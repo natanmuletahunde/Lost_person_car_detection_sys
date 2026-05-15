@@ -1,3 +1,4 @@
+// models/MissingPerson.js
 const mongoose = require('mongoose');
 
 const missingPersonSchema = new mongoose.Schema({
@@ -27,7 +28,9 @@ const missingPersonSchema = new mongoose.Schema({
     lastName: String,
     email: String,
     phone: String,
-    role: String
+    role: String,
+    telegramChatId: String,        // ← ADD THIS LINE
+    telegramUsername: String       // Optional: you can keep both
   },
 
   reportDate: {
@@ -45,7 +48,6 @@ const missingPersonSchema = new mongoose.Schema({
     default: false
   },
 
-  // 📸 NEW FIELD
   images: {
     type: [String],
     validate: {

@@ -131,6 +131,7 @@ app.use(errorHandler);
 // ================= SERVER =================
 const server = app.listen(config.server.port, "0.0.0.0", () => {
   console.log(`🚀 Server running on http://0.0.0.0:${config.server.port}`);
+  
 });
 
 // ================= SAFETY =================
