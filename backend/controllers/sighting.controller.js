@@ -4,7 +4,7 @@ const MissingVehicle = require('../models/MissingVehicle');
 const Notification = require('../models/Notification');
 const bot = require('../telegramBot');
 const ApiResponse = require('../utils/ApiResponse');
-const { paginate } = require('../utils/helpers');
+const { paginate, isValidObjectId } = require('../utils/helpers');
 
 const reportSighting = async (req, res, next) => {
   try {
@@ -48,25 +48,36 @@ const reportSighting = async (req, res, next) => {
       if (matchedCase) reporter = matchedCase.reportedBy;
     }
 
+    if (matchedCase) {
+      sighting.caseId = matchedCase._id;
+      await sighting.save();
+    }
+
     if (matchedCase && reporter && reporter.userId) {
       const message = `A new sighting has been reported for your case: ${type === 'person' ? name : plateNumber}. Location: ${location.address || 'Unknown'}`;
       
-      // Create in-app notification
-      await Notification.create({
-        recipient: reporter.userId,
-        title: 'New Sighting Reported',
-        message: message,
-        type: 'alert',
-        priority: 'high'
-      });
-
-      // Telegram notification
-      if (reporter.telegramUsername) {
-        try {
-          await bot.sendMessage(`@${reporter.telegramUsername}`, `🚨 SIGHTING ALERT!\n\n${message}`);
-        } catch (err) {
-          console.log('Telegram notification failed:', err.message);
+      try {
+        // Create in-app notification if userId is a valid ObjectId
+        if (isValidObjectId(reporter.userId)) {
+          await Notification.create({
+            recipient: reporter.userId,
+            title: 'New Sighting Reported',
+            message: message,
+            type: 'alert',
+            priority: 'high'
+          });
         }
+
+        // Telegram notification
+        if (reporter.telegramUsername) {
+          try {
+            await bot.sendMessage(`@${reporter.telegramUsername}`, `🚨 SIGHTING ALERT!\n\n${message}`);
+          } catch (err) {
+            console.log('Telegram notification failed:', err.message);
+          }
+        }
+      } catch (notifErr) {
+        console.log('Notification error in sighting:', notifErr.message);
       }
     }
 
@@ -80,12 +91,23 @@ const getMySightings = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const { status, type } = req.query;
+    const { status, type, caseId } = req.query;
 
-    const query = { user: req.user._id };
+    // Find cases reported by this user to include their sightings
+    const myPersons = await MissingPerson.find({ 'reportedBy.userId': req.user._id.toString() }).select('_id');
+    const myVehicles = await MissingVehicle.find({ 'reportedBy.userId': req.user._id.toString() }).select('_id');
+    const caseIds = [...myPersons, ...myVehicles].map(c => c._id);
+
+    const query = { 
+      $or: [
+        { user: req.user._id },
+        { caseId: { $in: caseIds } }
+      ]
+    };
 
     if (status) query.status = status;
     if (type) query.type = type;
+    if (caseId) query.caseId = caseId;
 
     const total = await Sighting.countDocuments(query);
     const sightings = await paginate(
