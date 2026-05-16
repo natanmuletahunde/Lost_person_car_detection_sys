@@ -160,17 +160,17 @@ export default function DashboardHeader({
                     </Text>
                   ) : (
                     notifications.map((n) => (
-                      <Menu.Item key={n.id}>
+                      <Menu.Item key={n._id || n.id}>
                         <Group gap="sm" wrap="nowrap">
                           <Box>
-                            <Text size="sm" fw={n.read ? 400 : 700}>
+                            <Text size="sm" fw={n.isRead ? 400 : 700}>
                               {n.message}
                             </Text>
                             <Text size="xs" c="dimmed">
-                              {n.time}
+                              {new Date(n.createdAt).toLocaleString()}
                             </Text>
                           </Box>
-                          {!n.read && (
+                          {!n.isRead && (
                             <Badge size="xs" color="red" variant="filled">
                               new
                             </Badge>
