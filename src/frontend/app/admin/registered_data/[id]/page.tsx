@@ -104,7 +104,8 @@ export default function RecordDetailPage() {
   }
 
   const raw = record.raw as Record<string, unknown>;
-  const imgs = (raw.images as string[] | undefined) || [];
+  const rawImgs = (raw.images as string[] | undefined) || [];
+  const imgs = rawImgs.length > 0 ? rawImgs : (raw.imagePreview ? [raw.imagePreview as string] : []);
 
   return (
     <Box p="xl" bg="#F4F7FE" style={{ minHeight: '100vh' }}>
@@ -136,7 +137,7 @@ export default function RecordDetailPage() {
 
         <Paper p="xl" radius="lg" shadow="md" withBorder>
           <Group gap="xl" mb="lg">
-            <Avatar size={100} radius="xl" color="blue">
+            <Avatar size={100} radius="xl" color="blue" src={imgs[0] ? uploadUrl(imgs[0]) : undefined}>
               {String(record.title).charAt(0)}
             </Avatar>
             <Box>

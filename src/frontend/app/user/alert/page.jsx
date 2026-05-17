@@ -106,6 +106,13 @@ export default function AlertPage() {
     return [];
   };
 
+  const getImageUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith("http") || path.startsWith("data:")) return path;
+    const baseUrl = API_BASE_URL.replace("/api/v1", "");
+    return `${baseUrl}${path.startsWith("/") ? "" : "/"}${path}`;
+  };
+
   // Fetch user data from localStorage on mount
   // Fetch user data from localStorage on mount
 
@@ -210,7 +217,7 @@ export default function AlertPage() {
               : vehicle.reportDate
                 ? new Date(vehicle.reportDate).toLocaleDateString()
                 : "Unknown",
-            imageUrl: "/default-car.jpg", // You'll need to handle images
+            imageUrl: getImageUrl(vehicle.imagePreview) || "/ebs.jpg",
             details:
               vehicle.vehicleDescription ||
               `${vehicle.color || ""} ${vehicle.brand || ""}`.trim(),
@@ -285,7 +292,7 @@ export default function AlertPage() {
               : person.reportDate
                 ? new Date(person.reportDate).toLocaleDateString()
                 : "Unknown",
-            imageUrl: "/default-person.jpg", // You'll need to handle images
+            imageUrl: getImageUrl(person.images?.[0]) || "/surveillance-man.jpg",
             details: `Age: ${person.age || "Unknown"}, Gender: ${person.gender || "Unknown"}`,
             fullDescription: person.description || "No description provided",
             lastSeen: person.lastSeenLocation || "Unknown",
@@ -786,6 +793,12 @@ export default function AlertPage() {
                           fill
                           style={{ objectFit: "cover" }}
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                          onError={(e) => {
+                            e.currentTarget.src =
+                              alert.type === "person"
+                                ? "/surveillance-man.jpg"
+                                : "/ebs.jpg";
+                          }}
                         />
 
                         {/* Overlay Icons Container */}

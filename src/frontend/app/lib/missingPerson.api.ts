@@ -20,7 +20,7 @@ export const createReport = async ({
   type: 'Person' | 'Vehicle' | 'Special';
   data: Record<string, any>;
   images: File[];
-  ownershipDocument?: File | null;
+  ownershipDocument?: File | File[] | null;
   doctorReport?: File | null;
   criminalRecord?: File | null;
 }) => {
@@ -49,7 +49,14 @@ export const createReport = async ({
   });
 
   // Append additional documents
-  if (ownershipDocument) formData.append('ownershipDocument', ownershipDocument);
+  if (ownershipDocument) {
+    const docs = Array.isArray(ownershipDocument) ? ownershipDocument : [ownershipDocument];
+    docs.forEach(doc => {
+      if (doc instanceof File) {
+        formData.append('ownershipDocument', doc);
+      }
+    });
+  }
   if (doctorReport) formData.append('doctorReport', doctorReport);
   if (criminalRecord) formData.append('criminalRecord', criminalRecord);
 

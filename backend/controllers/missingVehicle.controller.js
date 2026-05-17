@@ -9,11 +9,16 @@ const User = require('../models/User');
 exports.createMissingVehicle = async (req, res) => {
   try {
     const fileGroups = req.files || {};
-    const imageFiles = Array.isArray(fileGroups)
-      ? fileGroups
-      : fileGroups.images || [];
+    const imageFiles = Array.isArray(fileGroups) ? fileGroups : fileGroups.images || [];
+    const ownershipFiles = fileGroups.ownershipDocument || [];
+
     const imageUrls = imageFiles.map((f) => `/uploads/${f.filename}`);
     const imagePreview = imageUrls[0] || req.body.imagePreview || undefined;
+
+    let ownershipDocumentUrl = [];
+    if (ownershipFiles.length > 0) {
+      ownershipDocumentUrl = ownershipFiles.map(f => `/uploads/${f.filename}`);
+    }
 
     const authReportedBy = req.user
       ? {
@@ -69,8 +74,10 @@ exports.createMissingVehicle = async (req, res) => {
       ...req.body,
       reportedBy,
       imagePreview,
+      ownershipDocumentUrl,
       caseId,
       status: 'Active',
+      verificationStatus: 'Pending',
       reportDate: new Date(),
     });
 

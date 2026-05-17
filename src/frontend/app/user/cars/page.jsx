@@ -26,6 +26,13 @@ import { apiClient } from "../../lib/apiClient";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api/v1";
 const MISSING_VEHICLES_API = `${API_BASE_URL}/missing-vehicles`;
 
+const getImageUrl = (path) => {
+  if (!path) return null;
+  if (path.startsWith("http") || path.startsWith("data:")) return path;
+  const baseUrl = API_BASE_URL.replace("/api/v1", "");
+  return `${baseUrl}${path.startsWith("/") ? "" : "/"}${path}`;
+};
+
 export default function CarsPage() {
   const router = useRouter();
   const { colorScheme } = useMantineColorScheme();
@@ -112,7 +119,7 @@ export default function CarsPage() {
               <Box style={{ position: "relative", height: 200 }}>
                 {vehicle.imagePreview ? (
                   <Image
-                    src={vehicle.imagePreview}
+                    src={getImageUrl(vehicle.imagePreview) || "/default-car.jpg"}
                     fill
                     alt={vehicle.brand}
                     style={{ objectFit: "cover" }}

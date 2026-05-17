@@ -91,8 +91,15 @@ const determineVehicleType = (vehicle) => {
 
 const calculateDuration = (reportDate) => {
   if (!reportDate) return 'Unknown';
-  const days = Math.floor((new Date() - new Date(reportDate)) / (1000 * 60 * 60 * 24));
+  const days = Math.floor((new Date().getTime() - new Date(reportDate).getTime()) / (1000 * 60 * 60 * 24));
   return `${days} day${days !== 1 ? 's' : ''}`;
+};
+
+const getImageUrl = (path) => {
+  if (!path) return null;
+  if (path.startsWith("http") || path.startsWith("data:")) return path;
+  const baseUrl = API_BASE_URL.replace("/api/v1", "");
+  return `${baseUrl}${path.startsWith("/") ? "" : "/"}${path}`;
 };
 
 const getVehicleIcon = (type, size = 24) => {
@@ -128,6 +135,9 @@ const transformAlert = (item, type) => {
     detectionHistory: [],
     cctvInfo: item.cctvInfo || { confidence: 'N/A' },
     title: type === 'person' ? 'Missing Person Alert' : 'Missing Vehicle Alert',
+    imageUrl: type === 'person' 
+      ? getImageUrl(item.images?.[0]) || "/default-person.jpg"
+      : getImageUrl(item.imagePreview) || "/default-car.jpg",
   };
 };
 
@@ -635,10 +645,17 @@ export default function AlertDetailPage() {
         {/* Alert Header */}
         <Paper p="xl" mb="xl" withBorder radius="md" bg={paperBg}>
           <Group justify="space-between" mb="md" wrap="wrap">
-            <Box>
-              <Title order={2} mb="xs">
-                {alertData.title || alertData.brand}
-              </Title>
+            <Group gap="xl">
+              <Avatar 
+                src={alertData.imageUrl} 
+                size={120} 
+                radius="md" 
+                style={{ border: `2px solid ${borderColor}` }}
+              />
+              <Box>
+                <Title order={2} mb="xs">
+                  {alertData.title || alertData.brand}
+                </Title>
               <Group gap="lg" wrap="wrap">
                 <Badge size="lg" color={alertData.status === "active" ? "red" : "green"}>
                   {alertData.status.toUpperCase()}
@@ -657,7 +674,8 @@ export default function AlertDetailPage() {
                 </Group>
               </Group>
             </Box>
-            <Group>
+          </Group>
+          <Group>
               {/* ========== CHANGED to custom handler ========== */}
               <Button 
                 leftSection={<IconDownload size={18} />} 

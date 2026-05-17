@@ -19,7 +19,7 @@ import {
   IconEye, IconPlus, IconFileSpreadsheet, IconAlertCircle,
   IconChevronRight
 } from '@tabler/icons-react';
-import { adminFetch, adminDelete } from '@/app/lib/adminApi';
+import { adminFetch, adminDelete, uploadUrl } from '@/app/lib/adminApi';
 
 // Helpers
 const getBg = (colorScheme, light, dark) => (colorScheme === 'dark' ? dark : light);
@@ -51,6 +51,7 @@ const mapPersonToRecord = (person) => ({
   dateObj: new Date(personReportDate(person)),
   status: person.status || 'Active',
   alerts: Array.isArray(person.matches) ? person.matches.length : 0,
+  imageUrl: person.images?.[0] || person.imagePreview || null,
 });
 
 // Map a vehicle from the API to our unified record shape
@@ -67,6 +68,7 @@ const mapVehicleToRecord = (vehicle) => ({
   dateObj: new Date(vehicle.createdAt || vehicle.lastSeenDate || new Date()),
   status: vehicle.status || 'Active',
   alerts: Array.isArray(vehicle.matches) ? vehicle.matches.length : 0,
+  imageUrl: vehicle.imagePreview || (vehicle.images && vehicle.images[0]) || null,
 });
 
 export default function DataManagementPage() {
@@ -461,7 +463,9 @@ export default function DataManagementPage() {
                   <Table.Tr key={item.id}>
                     <Table.Td>
                       <Group gap="sm">
-                        <Avatar size="sm" color="blue" radius="xl">{item.brand[0]}</Avatar>
+                        <Avatar size="sm" color="blue" radius="xl" src={item.imageUrl ? uploadUrl(item.imageUrl) : undefined}>
+                          {item.brand[0]}
+                        </Avatar>
                         <Text size="sm" fw={600}>{item.brand}</Text>
                       </Group>
                     </Table.Td>
@@ -639,7 +643,9 @@ export default function DataManagementPage() {
         {viewingRecord && (
           <Stack gap="md">
             <Group gap="xl">
-              <Avatar size={80} radius="xl" color="blue">{viewingRecord.brand[0]}</Avatar>
+              <Avatar size={80} radius="xl" color="blue" src={viewingRecord.imageUrl ? uploadUrl(viewingRecord.imageUrl) : undefined}>
+                {viewingRecord.brand[0]}
+              </Avatar>
               <Box>
                 <Text fw={700} size="xl">{viewingRecord.brand}</Text>
                 <Text size="sm" c="dimmed">{viewingRecord.model}</Text>

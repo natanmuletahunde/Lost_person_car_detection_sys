@@ -58,6 +58,15 @@ const GpsTracker = dynamic(() => import("../../components/GpsTracker"), {
   ssr: false,
 });
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api/v1";
+
+const getImageUrl = (path: string | null) => {
+  if (!path) return null;
+  if (path.startsWith("http") || path.startsWith("data:")) return path;
+  const baseUrl = API_BASE_URL.replace("/api/v1", "");
+  return `${baseUrl}${path.startsWith("/") ? "" : "/"}${path}`;
+};
+
 interface DashboardMainContentProps {
   user: any;
   missingPersons: any[];
@@ -446,7 +455,7 @@ export default function DashboardMainContent({
                   <Box style={{ position: "relative", height: 160 }}>
                     {vehicle.imagePreview ? (
                       <Image
-                        src={vehicle.imagePreview}
+                        src={getImageUrl(vehicle.imagePreview) || "/default-car.jpg"}
                         fill
                         alt={vehicle.brand}
                         style={{ objectFit: "cover" }}
@@ -559,9 +568,9 @@ export default function DashboardMainContent({
                   bg={getBg("white", "#2C2E33")}
                 >
                   <Box style={{ position: "relative", height: 200 }}>
-                    {person.imagePreview ? (
+                    {person.images?.[0] || person.imagePreview ? (
                       <Image
-                        src={person.imagePreview}
+                        src={getImageUrl(person.images?.[0] || person.imagePreview) || "/default-person.jpg"}
                         fill
                         alt={`${person.firstName} ${person.lastName}`}
                         style={{ objectFit: "cover" }}
