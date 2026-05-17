@@ -39,6 +39,12 @@ const feedbackSchema = new mongoose.Schema({
     enum: ['low', 'medium', 'high', 'urgent'],
     default: 'medium',
   },
+  rating: {
+    type: Number,
+    min: 1,
+    max: 5,
+    default: 5,
+  },
 }, {
   timestamps: true,
 });
