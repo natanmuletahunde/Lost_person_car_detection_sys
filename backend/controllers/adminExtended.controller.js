@@ -293,10 +293,11 @@ const verifyVehicleDocument = async (req, res, next) => {
     if (action === 'approve') {
       vehicle.verificationStatus = 'Verified';
       vehicle.verified = true;
+      vehicle.status = 'Active';
     } else {
       vehicle.verificationStatus = 'Rejected';
       vehicle.verified = false;
-      // You could append the rejection reason to a 'notes' array if desired
+      vehicle.status = 'Rejected';
       if (reason) {
         vehicle.notes.push({ text: `Document rejected: ${reason}`, addedAt: new Date() });
       }
@@ -304,7 +305,75 @@ const verifyVehicleDocument = async (req, res, next) => {
 
     await vehicle.save();
 
+    // Send in-app notification to the reporter
+    const reporterUserId = vehicle.reportedBy?.userId;
+    if (reporterUserId) {
+      const vehicleName = [vehicle.brand, vehicle.model].filter(Boolean).join(' ') || 'Your vehicle';
+      const plateInfo = vehicle.plateNumber ? ` (${vehicle.plateNumber})` : '';
+
+      const notificationTitle = action === 'approve'
+        ? '✅ Ownership Document Approved'
+        : '❌ Ownership Document Rejected';
+
+      const notificationMessage = action === 'approve'
+        ? `Your ownership document for ${vehicleName}${plateInfo} has been reviewed and approved. Your case is now fully verified.`
+        : `Your ownership document for ${vehicleName}${plateInfo} has been reviewed and rejected.${reason ? ` Reason: ${reason}` : ' Please re-upload a valid ownership document.'}`;
+
+      await Notification.create({
+        recipient: reporterUserId,
+        title: notificationTitle,
+        message: notificationMessage,
+        type: action === 'approve' ? 'success' : 'warning',
+        priority: 'high',
+      });
+    }
+
     return ApiResponse.success(res, `Vehicle document ${action}d successfully`, { vehicle });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const verifyCase = async (req, res, next) => {
+  try {
+    const { id, type } = req.params;
+    const { action } = req.body; // 'approve' or 'reject'
+
+    if (!['approve', 'reject'].includes(action)) {
+      return ApiResponse.error(res, 'Invalid action', 400);
+    }
+
+    let model;
+    if (type === 'person') model = MissingPerson;
+    else if (type === 'vehicle') model = MissingVehicle;
+    else return ApiResponse.error(res, 'Invalid type', 400);
+
+    const caseItem = await model.findById(id);
+    if (!caseItem) return ApiResponse.error(res, 'Case not found', 404);
+
+    caseItem.verified = action === 'approve';
+    caseItem.status = action === 'approve' ? 'Active' : 'Rejected';
+    await caseItem.save();
+
+    // Notify the reporter
+    const reporterUserId = caseItem.reportedBy?.userId;
+    if (reporterUserId) {
+      const caseName = type === 'vehicle'
+        ? `${caseItem.brand || ''} ${caseItem.model || ''}`.trim() || 'Your vehicle'
+        : `${caseItem.firstName || ''} ${caseItem.lastName || ''}`.trim() || 'Your person report';
+
+      await Notification.create({
+        recipient: reporterUserId,
+        title: action === 'approve' ? '✅ Report Approved' : '❌ Report Rejected',
+        message: action === 'approve'
+          ? `Your report for "${caseName}" has been approved and is now visible to the public.`
+          : `Your report for "${caseName}" has been reviewed and not approved. Please contact support if you believe this is a mistake.`,
+        type: action === 'approve' ? 'success' : 'warning',
+        priority: 'high',
+      });
+    }
+
+    return ApiResponse.success(res, `Case ${action}d successfully`, { caseItem });
   } catch (error) {
     next(error);
   }
@@ -616,5 +685,6 @@ module.exports = {
   getNotificationsSettings,
   getDashboardStats,
   getPendingVehicleValidations,
-  verifyVehicleDocument
+  verifyVehicleDocument,
+  verifyCase
 };

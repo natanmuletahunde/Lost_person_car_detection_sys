@@ -73,7 +73,7 @@ exports.createMissingPerson = async (req, res) => {
       images,
       reportDate: new Date(),
       lastUpdated: new Date(),
-      status: 'Active',
+      status: 'Pending',
       verified: false,
     };
 
@@ -101,7 +101,7 @@ exports.createMissingPerson = async (req, res) => {
 // ==============================
 exports.getMissingPersons = async (req, res) => {
   try {
-    const persons = await MissingPerson.find().sort({ createdAt: -1 });
+    const persons = await MissingPerson.find({ verified: true, status: 'Active' }).sort({ createdAt: -1 });
 
     res.json({
       success: true,
@@ -141,10 +141,10 @@ exports.getMyMissingPersons = async (req, res) => {
 // ==============================
 exports.getMissingPersonById = async (req, res) => {
   try {
-    const person = await MissingPerson.findById(req.params.id);
+    const person = await MissingPerson.findOne({ _id: req.params.id, verified: true, status: 'Active' });
 
     if (!person) {
-      return res.status(404).json({ success: false, message: "Not found" });
+      return res.status(404).json({ success: false, message: "Not found or not verified" });
     }
 
     const sightings = await Sighting.find({
