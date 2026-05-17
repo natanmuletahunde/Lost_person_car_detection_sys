@@ -1,20 +1,27 @@
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
+
 const TelegramBot = require('node-telegram-bot-api');
 const User = require('./models/User');
 // const AuditLog = require('./models/AuditLog'); // Uncomment if you have it
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
+let bot;
 
 if (!token) {
-  throw new Error('❌ TELEGRAM_BOT_TOKEN is missing in .env');
-}
+  console.warn('⚠️ TELEGRAM_BOT_TOKEN is missing in backend/.env. Telegram notifications are disabled.');
+  bot = {
+    sendMessage: async () => Promise.resolve(),
+    on: () => {},
+    onText: () => {},
+  };
+} else {
+  bot = new TelegramBot(token, { polling: true });
 
-// Initialize bot
-const bot = new TelegramBot(token, { polling: true });
+  console.log('🤖 Telegram bot started successfully...');
 
-console.log('🤖 Telegram bot started successfully...');
-
-// ==============================
-// MESSAGE HANDLER
+  // ==============================
+  // MESSAGE HANDLER
 // ==============================
 bot.on('message', async (msg) => {
   try {
@@ -102,5 +109,6 @@ bot.onText(/\/status/, async (msg) => {
     bot.sendMessage(chatId, '⚠️ Error checking status.');
   }
 });
+}
 
 module.exports = bot;
