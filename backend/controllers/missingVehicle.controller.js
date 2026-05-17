@@ -76,7 +76,7 @@ exports.createMissingVehicle = async (req, res) => {
       imagePreview,
       ownershipDocumentUrl,
       caseId,
-      status: 'Active',
+      status: 'Pending',
       verificationStatus: 'Pending',
       reportDate: new Date(),
     });
@@ -105,7 +105,7 @@ exports.createMissingVehicle = async (req, res) => {
 // ==============================
 exports.getMissingVehicles = async (req, res) => {
   try {
-    const vehicles = await MissingVehicle.find().sort({ createdAt: -1 });
+    const vehicles = await MissingVehicle.find({ verified: true, status: 'Active' }).sort({ createdAt: -1 });
     res.json({ success: true, data: vehicles });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -133,12 +133,12 @@ exports.getMyMissingVehicles = async (req, res) => {
 // ==============================
 exports.getMissingVehicleById = async (req, res) => {
   try {
-    const vehicle = await MissingVehicle.findById(req.params.id);
+    const vehicle = await MissingVehicle.findOne({ _id: req.params.id, verified: true, status: 'Active' });
 
     if (!vehicle) {
       return res.status(404).json({
         success: false,
-        message: 'Vehicle not found'
+        message: 'Vehicle not found or not verified'
       });
     }
 
