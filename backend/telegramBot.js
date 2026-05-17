@@ -13,6 +13,16 @@ const bot = new TelegramBot(token, { polling: true });
 
 console.log('🤖 Telegram bot started successfully...');
 
+bot.on("polling_error", (error) => {
+  if (error.code === 'ETELEGRAM' && error.message.includes('409 Conflict')) {
+    console.error('⚠️ Telegram Bot Conflict: Another instance is already running and using this bot token.');
+    console.error('👉 Fix: Please stop the other running instance (check if you have another terminal open, or if the bot is running on a deployed server).');
+    bot.stopPolling();
+  } else {
+    console.error('❌ Telegram Bot Polling Error:', error.message);
+  }
+});
+
 // ==============================
 // MESSAGE HANDLER
 // ==============================

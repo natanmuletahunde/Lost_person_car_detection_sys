@@ -16,7 +16,9 @@ const {
   respondToFeedback,
   sendBulkNotification,
   getNotificationsSettings,
-  getDashboardStats
+  getDashboardStats,
+  getPendingVehicleValidations,
+  verifyVehicleDocument
 } = require('../controllers/adminExtended.controller');
 
 /**
@@ -90,6 +92,9 @@ router.get('/cases', protect, authorize('admin', 'moderator'), getAllCases);
 router.get('/cases/:type/:id', protect, authorize('admin', 'moderator'), getCaseDetail);
 router.patch('/cases/:id/status', protect, authorize('admin', 'moderator'), updateCaseStatus);
 router.delete('/cases/:type/:id', protect, authorize('admin', 'moderator'), deleteCase);
+
+router.get('/vehicles/pending-validation', protect, authorize('admin', 'moderator'), getPendingVehicleValidations);
+router.patch('/vehicles/:id/verify', protect, authorize('admin', 'moderator'), verifyVehicleDocument);
 
 router.get('/finance', protect, authorize('admin', 'moderator'), getFinanceStats);
 
