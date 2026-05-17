@@ -27,6 +27,8 @@ import {
   UnstyledButton,
   useMantineTheme,
   useMantineColorScheme,
+  Modal,
+  Textarea,
 } from "@mantine/core";
 import {
   IconAlertCircle,
@@ -58,6 +60,7 @@ import {
   IconTruck,
   IconBattery,
 } from "@tabler/icons-react";
+import { notifications } from "@mantine/notifications";
 import Link from "next/link";
 import Image from "next/image";
 import MainFooter from "../../../../components/MainFooter";
@@ -162,6 +165,11 @@ export default function AlertDetailPage() {
 
   // Current user state for logging
   const [currentUser, setCurrentUser] = useState(null);
+
+  // Confirmation modal state
+  const [foundModalOpen, setFoundModalOpen] = useState(false);
+  const [foundNotes, setFoundNotes] = useState("");
+  const [submittingFound, setSubmittingFound] = useState(false);
 
   // Dynamic colors
   const mainBg = getBg(colorScheme, 'white', theme.colors.dark[7]);
@@ -488,6 +496,51 @@ export default function AlertDetailPage() {
   const handleDownloadReport = () => {
     createActionLog('download_report_clicked', { alertId: alertData.id });
     // actual download logic here
+  };
+
+  const handleFoundConfirm = async () => {
+    if (!alertData?.id) return;
+    setSubmittingFound(true);
+    try {
+      const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api/v1';
+      const caseType = (alertData.type === 'person') ? 'person' : 'vehicle';
+      const resolveUrl = caseType === 'person'
+        ? `${API_BASE}/missing-persons/${alertData.id}/resolve`
+        : `${API_BASE}/missing-vehicles/${alertData.id}/resolve`;
+
+      // 1. Mark case as Resolved via user-accessible endpoint
+      await apiClient(resolveUrl, { method: 'PATCH' });
+
+      // 2. Notify all admins
+      await apiClient(`${API_BASE}/notifications/send-admin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: `✅ ${caseType === 'person' ? 'Missing Person' : 'Missing Vehicle'} Found!`,
+          message: `The reporter has confirmed that "${alertData.brand}" (Case: ${alertData.code}) has been found.${foundNotes ? ` Notes: ${foundNotes}` : ''}`,
+          type: 'success',
+        }),
+      });
+
+      setFoundModalOpen(false);
+      notifications.show({
+        title: '🎉 Great news!',
+        message: 'The case has been marked as resolved. Thank you for letting us know!',
+        color: 'green',
+      });
+
+      // 3. Redirect to feedback page
+      router.push('/user/feedback');
+    } catch (err: any) {
+      console.error(err);
+      notifications.show({
+        title: 'Error',
+        message: 'Could not mark as resolved. Please try again.',
+        color: 'red',
+      });
+    } finally {
+      setSubmittingFound(false);
+    }
   };
 
   return (
@@ -981,17 +1034,78 @@ export default function AlertDetailPage() {
           >
             Back to Alerts
           </Button>
-          {/* ========== CHANGED to custom handler ========== */}
-          <Button 
-            size="lg" 
-            color="blue" 
+          <Button
+            size="lg"
+            color="blue"
             leftSection={<IconDownload size={18} />}
             onClick={handleDownloadReport}
           >
             Download Full Report
           </Button>
+          {alertData.status !== 'resolved' && (
+            <Button
+              size="lg"
+              color="green"
+              leftSection={<IconCheck size={18} />}
+              onClick={() => setFoundModalOpen(true)}
+            >
+              ✅ Yes, this is my {alertData.type === 'person' ? 'person' : 'car'}!
+            </Button>
+          )}
         </Group>
       </Box>
+
+      {/* Found Confirmation Modal */}
+      <Modal
+        opened={foundModalOpen}
+        onClose={() => setFoundModalOpen(false)}
+        title={
+          <Group gap="xs">
+            <Text fw={800} size="xl">🎉 Confirm Found</Text>
+          </Group>
+        }
+        centered
+        size="md"
+        radius="lg"
+      >
+        <Stack gap="md">
+          <Paper p="md" bg="#f0fdf4" radius="md" withBorder style={{ borderColor: '#86efac' }}>
+            <Text fw={600} c="green.8" size="sm" mb={4}>You are about to mark this case as RESOLVED</Text>
+            <Text size="sm" c="dimmed">
+              Confirming that <strong>{alertData?.brand}</strong> (Case: {alertData?.code}) has been found.
+              The admin team will be notified and you will be redirected to leave feedback.
+            </Text>
+          </Paper>
+
+          <Textarea
+            label="Additional Notes (Optional)"
+            placeholder="Any additional details about how/where you found them..."
+            value={foundNotes}
+            onChange={(e) => setFoundNotes(e.currentTarget.value)}
+            minRows={3}
+            radius="md"
+          />
+
+          <Group grow mt="xs">
+            <Button
+              variant="light"
+              color="gray"
+              onClick={() => setFoundModalOpen(false)}
+              disabled={submittingFound}
+            >
+              Cancel
+            </Button>
+            <Button
+              color="green"
+              leftSection={<IconCheck size={16} />}
+              onClick={handleFoundConfirm}
+              loading={submittingFound}
+            >
+              Yes, confirm found!
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
 
       <MainFooter />
     </Box>

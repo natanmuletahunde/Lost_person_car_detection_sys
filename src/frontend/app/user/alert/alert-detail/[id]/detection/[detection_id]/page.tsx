@@ -25,6 +25,8 @@ import {
   Grid,
   useMantineTheme,
   useMantineColorScheme,
+  Modal,
+  Textarea,
 } from "@mantine/core";
 import {
   IconAlertCircle,
@@ -89,6 +91,11 @@ export default function SingleDetectionDetailPage() {
   const [isOwner, setIsOwner] = useState(false);
   const [isFalseAlert, setIsFalseAlert] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+
+  // Confirmation modal
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [confirmNotes, setConfirmNotes] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   
   const mapRef = useRef(null);
   const leafletMap = useRef(null);
@@ -369,36 +376,67 @@ export default function SingleDetectionDetailPage() {
       setIsOwner(false);
       setIsFalseAlert(true);
     }
-    // No logging here – logging will happen on Submit
   };
 
-  // Handle submit of response
+  // Handle submit — if owner, show modal; if false alert, submit directly
   const handleSubmitResponse = () => {
     if (!isOwner && !isFalseAlert) return;
-
     if (isOwner) {
-      createActionLog('detection_owner_confirmed', {
-        caseId: params.id,
-        detectionId: params.detection_id,
+      setConfirmModalOpen(true);
+    } else {
+      notifications.show({
+        title: 'Thanks for reporting',
+        message: 'This sighting has been flagged as a false alert.',
+        color: 'orange',
+        icon: <IconCheck size={16} />,
       });
-      console.log('Owner confirmed');
-      // Future: send to backend
-    } else if (isFalseAlert) {
-      createActionLog('detection_false_alert', {
-        caseId: params.id,
-        detectionId: params.detection_id,
-      });
-      console.log('False alert reported');
-      // Future: send to backend
     }
+  };
 
-    // Optional notification
-    notifications.show({
-      title: 'Response Submitted',
-      message: isOwner ? 'You confirmed ownership.' : 'You reported a false alert.',
-      color: isOwner ? 'green' : 'red',
-      icon: <IconCheck size={16} />,
-    });
+  // Handle final owner confirmation from modal
+  const handleConfirmOwnership = async () => {
+    if (!alertData?.id) return;
+    setSubmitting(true);
+    try {
+      const caseType = (alertData.category?.type === 'Person' || alertData.category?.type === 'person') ? 'person' : 'vehicle';
+
+      // 1. Mark case as Resolved via user-accessible endpoint
+      const resolveUrl = caseType === 'person'
+        ? `${API_BASE_URL}/missing-persons/${alertData.id}/resolve`
+        : `${API_BASE_URL}/missing-vehicles/${alertData.id}/resolve`;
+
+      await apiClient(resolveUrl, { method: 'PATCH' });
+
+      // 2. Notify all admins
+      await apiClient(`${API_BASE_URL}/notifications/send-admin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: `✅ ${caseType === 'person' ? 'Missing Person' : 'Missing Vehicle'} Found!`,
+          message: `The reporter confirmed that "${alertData.category?.brandName}" (Case: ${alertData.code}) has been found.${confirmNotes ? ` Notes: ${confirmNotes}` : ''}`,
+          type: 'success',
+        }),
+      });
+
+      setConfirmModalOpen(false);
+      notifications.show({
+        title: '🎉 Great news!',
+        message: 'Case marked as resolved. Thank you! Redirecting to feedback...',
+        color: 'green',
+      });
+
+      // 3. Redirect to feedback
+      setTimeout(() => router.push('/user/feedback'), 1500);
+    } catch (err: any) {
+      console.error(err);
+      notifications.show({
+        title: 'Error',
+        message: 'Could not mark as resolved. Please try again.',
+        color: 'red',
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // Handle export details
@@ -1279,6 +1317,54 @@ export default function SingleDetectionDetailPage() {
           </Group>
         </Group>
       </Container>
+
+      {/* Ownership Confirmation Modal */}
+      <Modal
+        opened={confirmModalOpen}
+        onClose={() => setConfirmModalOpen(false)}
+        title={<Text fw={800} size="xl">🎉 Confirm Ownership</Text>}
+        centered
+        size="md"
+        radius="lg"
+      >
+        <Stack gap="md">
+          <Paper p="md" bg="#f0fdf4" radius="md" withBorder style={{ borderColor: '#86efac' }}>
+            <Text fw={600} c="green.8" size="sm" mb={4}>You are about to mark this case as RESOLVED</Text>
+            <Text size="sm" c="dimmed">
+              Confirming that <strong>{alertData?.category?.brandName}</strong> (Case: {alertData?.code}) has been found.
+              All admins will be notified and you will be redirected to leave feedback.
+            </Text>
+          </Paper>
+
+          <Textarea
+            label="Additional Notes (Optional)"
+            placeholder="Any details about how/where you found them..."
+            value={confirmNotes}
+            onChange={(e) => setConfirmNotes(e.currentTarget.value)}
+            minRows={3}
+            radius="md"
+          />
+
+          <Group grow mt="xs">
+            <Button
+              variant="light"
+              color="gray"
+              onClick={() => setConfirmModalOpen(false)}
+              disabled={submitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              color="green"
+              leftSection={<IconCheck size={16} />}
+              onClick={handleConfirmOwnership}
+              loading={submitting}
+            >
+              Yes, confirm found!
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
 
       <MainFooter />
     </Box>

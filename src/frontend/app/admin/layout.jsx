@@ -1,21 +1,33 @@
 "use client";
 
-import React, { useState } from 'react';
-import { AppShell, Box, Stack, UnstyledButton, Group, Text, ScrollArea, ActionIcon, Tooltip, useMantineTheme, useMantineColorScheme } from '@mantine/core';
+import React, { useState, useEffect } from 'react';
+import { AppShell, Box, Stack, UnstyledButton, Group, Text, ScrollArea, ActionIcon, Tooltip, useMantineTheme, useMantineColorScheme, Badge } from '@mantine/core';
 import { 
   IconLayoutDashboard, IconUsers, IconDatabase, IconFileCheck, 
   IconCoin, IconBell, IconMessageDots, IconSettings, IconHistory, IconLogout,
-  IconChevronLeft, IconMenu2
+  IconChevronLeft, IconMenu2, IconInbox
 } from '@tabler/icons-react';
 import { usePathname, useRouter } from 'next/navigation';
-import Image from 'next/image'; // corrected import
+import Image from 'next/image';
+import { adminFetch } from '@/app/lib/adminApi';
 
 export default function AdminLayout({ children }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const pathname = usePathname();
   const router = useRouter();
   const theme = useMantineTheme();
   const { colorScheme } = useMantineColorScheme();
+
+  // Fetch unread notification count for sidebar badge
+  useEffect(() => {
+    adminFetch('/notifications/my-notifications')
+      .then((data) => {
+        const arr = Array.isArray(data) ? data : [];
+        setUnreadCount(arr.filter((n) => !n.isRead).length);
+      })
+      .catch(() => {});
+  }, [pathname]);
 
   // Sidebar gradient – light mode uses original blue; dark mode uses a darker blue variant
   const sidebarGradient = colorScheme === 'dark'
@@ -32,6 +44,7 @@ export default function AdminLayout({ children }) {
     { icon: <IconFileCheck size={22} />, label: 'Document Validation', path: '/admin/document_validation' },
     { icon: <IconCoin size={22} />, label: 'Finance', path: '/admin/finance' },
     { icon: <IconBell size={22} />, label: 'Notifications', path: '/admin/notification' },
+    { icon: <IconInbox size={22} />, label: 'Inbox', path: '/admin/inbox', badge: unreadCount },
     { icon: <IconMessageDots size={22} />, label: 'Feedback', path: '/admin/feedback' },
     { icon: <IconSettings size={22} />, label: 'Setting', path: '/admin/settings' },
     { icon: <IconHistory size={22} />, label: 'Activities', path: '/admin/activities' },
@@ -122,13 +135,12 @@ export default function AdminLayout({ children }) {
   );
 }
 
-function AdminNavItem({ icon, label, active, onClick, collapsed }) {
+function AdminNavItem({ icon, label, active, onClick, collapsed, badge }) {
   const { colorScheme } = useMantineColorScheme();
   const theme = useMantineTheme();
 
-  // Determine active background color – slightly lighter/darker depending on mode
   const activeBg = colorScheme === 'dark'
-    ? theme.colors.blue[7] + '40' // semi-transparent blue
+    ? theme.colors.blue[7] + '40'
     : 'rgba(255, 255, 255, 0.2)';
 
   const content = (
@@ -159,18 +171,29 @@ function AdminNavItem({ icon, label, active, onClick, collapsed }) {
         />
       )}
       
-      <Group gap="md" wrap="nowrap">
-        {React.cloneElement(icon, { color: 'white' })}
-        {!collapsed && (
-          <Text c="white" size="sm" fw={active ? 700 : 400} style={{ whiteSpace: 'nowrap' }}>
-            {label}
-          </Text>
+      <Group gap="md" wrap="nowrap" justify="space-between" w="100%">
+        <Group gap="md" wrap="nowrap">
+          {React.cloneElement(icon, { color: 'white' })}
+          {!collapsed && (
+            <Text c="white" size="sm" fw={active ? 700 : 400} style={{ whiteSpace: 'nowrap' }}>
+              {label}
+            </Text>
+          )}
+        </Group>
+        {!collapsed && badge > 0 && (
+          <Badge size="sm" color="red" variant="filled" circle style={{ flexShrink: 0 }}>
+            {badge}
+          </Badge>
+        )}
+        {collapsed && badge > 0 && (
+          <Box style={{ position: 'absolute', top: 6, right: 6 }}>
+            <Badge size="xs" color="red" variant="filled" circle>{badge}</Badge>
+          </Box>
         )}
       </Group>
     </UnstyledButton>
   );
 
-  // If collapsed, show a tooltip on hover
   return collapsed ? (
     <Tooltip label={label} position="right" withArrow offset={15}>
       {content}

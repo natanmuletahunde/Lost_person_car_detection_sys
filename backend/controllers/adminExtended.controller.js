@@ -339,7 +339,7 @@ const verifyCase = async (req, res, next) => {
     const { id, type } = req.params;
     const { action } = req.body; // 'approve' or 'reject'
 
-    if (!['approve', 'reject'].includes(action)) {
+    if (!['approve', 'reject', 'resolve'].includes(action)) {
       return ApiResponse.error(res, 'Invalid action', 400);
     }
 
@@ -351,13 +351,17 @@ const verifyCase = async (req, res, next) => {
     const caseItem = await model.findById(id);
     if (!caseItem) return ApiResponse.error(res, 'Case not found', 404);
 
-    caseItem.verified = action === 'approve';
-    caseItem.status = action === 'approve' ? 'Active' : 'Rejected';
+    if (action === 'resolve') {
+      caseItem.status = 'Resolved';
+    } else {
+      caseItem.verified = action === 'approve';
+      caseItem.status = action === 'approve' ? 'Active' : 'Rejected';
+    }
     await caseItem.save();
 
-    // Notify the reporter
+    // Notify the reporter only for approve/reject (not resolve, that goes to admin)
     const reporterUserId = caseItem.reportedBy?.userId;
-    if (reporterUserId) {
+    if (reporterUserId && action !== 'resolve') {
       const caseName = type === 'vehicle'
         ? `${caseItem.brand || ''} ${caseItem.model || ''}`.trim() || 'Your vehicle'
         : `${caseItem.firstName || ''} ${caseItem.lastName || ''}`.trim() || 'Your person report';
