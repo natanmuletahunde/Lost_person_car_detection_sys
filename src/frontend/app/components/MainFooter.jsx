@@ -9,6 +9,7 @@ import {
   IconBrandYoutube 
 } from '@tabler/icons-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 // Helper to get dynamic background/color values
 const getBg = (colorScheme, light, dark) => (colorScheme === 'dark' ? dark : light);
@@ -46,7 +47,14 @@ export default function MainFooter() {
           {/* Brand Column */}
           <Stack gap="md">
             <Group gap="xs" component={Link} href="/" style={{ textDecoration: 'none' }}>
-              <Box style={{ width: 30, height: 30, borderRadius: 8, background: '#2f80ed' }} />
+              <Image
+                src="/logo.jpg"
+                alt="Logo"
+                width={0}
+                height={30}
+                sizes="100vw"
+                style={{ width: 'auto', height: '30px', borderRadius: '6px' }}
+              />
               <Text fw={800} size="xl" c={headingColor}>Flega</Text>
             </Group>
             <Text size="sm" c={dimmedColor}>

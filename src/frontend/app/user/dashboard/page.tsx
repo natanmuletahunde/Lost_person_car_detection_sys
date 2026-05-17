@@ -21,6 +21,7 @@ const MISSING_VEHICLES_API = `${API_BASE_URL}/missing-vehicles`;
 const MY_MISSING_PERSONS_API = `${API_BASE_URL}/missing-persons/my-reports`;
 const MY_MISSING_VEHICLES_API = `${API_BASE_URL}/missing-vehicles/my-reports`;
 const MY_SIGHTINGS_API = `${API_BASE_URL}/sightings/my-sightings`;
+const MY_NOTIFICATIONS_API = `${API_BASE_URL}/notifications/my-notifications`;
 
 export default function Dashboard() {
   const router = useRouter();
@@ -170,10 +171,22 @@ export default function Dashboard() {
     fetchSightings();
   }, []);
 
-  // ---------- Fetch notifications (placeholder until user endpoint exists) ----------
+  // ---------- Fetch notifications ----------
   useEffect(() => {
-    setNotifications([]);
-    setUnreadCount(0);
+    const fetchNotifications = async () => {
+      try {
+        const res = await apiClient(MY_NOTIFICATIONS_API);
+        if (res.ok) {
+          const payload = await res.json();
+          const notifs = extractArray(payload);
+          setNotifications(notifs);
+          setUnreadCount(notifs.filter((n: any) => !n.isRead).length);
+        }
+      } catch (error) {
+        console.error("Error fetching notifications:", error);
+      }
+    };
+    fetchNotifications();
   }, []);
 
   // ---------- Fetch only this user's registered cases ----------

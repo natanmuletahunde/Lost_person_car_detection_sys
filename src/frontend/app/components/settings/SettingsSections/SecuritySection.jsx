@@ -9,14 +9,20 @@ import {
   Alert,
   Box,
   Progress,
+  Button,
+  Divider,
+  Modal,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconShieldLock, IconInfoCircle, IconKey } from "@tabler/icons-react";
+import { IconShieldLock, IconInfoCircle, IconKey, IconAlertTriangle, IconTrash } from "@tabler/icons-react";
 import { GRADIENT_WARNING } from "../utils/constants";
 import { usePasswordStrength } from "../hooks/usePasswordStrength";
+import { useState } from "react";
 
 export const SecuritySection = (props) => {
-  const { formData, handleChange, errors } = props;
+  const { formData, handleChange, errors, handleDeleteAccount, router } = props;
+  const [deleteModalOpened, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [visibleCurrent, { toggle: toggleCurrent }] = useDisclosure(false);
   const [visibleNew, { toggle: toggleNew }] = useDisclosure(false);
   const [visibleConfirm, { toggle: toggleConfirm }] = useDisclosure(false);
@@ -130,6 +136,56 @@ export const SecuritySection = (props) => {
           />
         </Grid.Col>
       </Grid>
+
+      {/* Danger Zone */}
+      <Divider my="xl" label={<Text fw={600} size="sm" c="red">Danger Zone</Text>} labelPosition="center" />
+      
+      <Group justify="space-between" align="center" p="md" style={{ border: "1px solid rgba(250, 82, 82, 0.2)", borderRadius: "12px", background: "rgba(250, 82, 82, 0.03)" }}>
+        <Box>
+          <Text fw={700} c="red" mb={4}>Delete Account</Text>
+          <Text size="sm" c="dimmed">Permanently delete your account and all associated data. This action cannot be undone.</Text>
+        </Box>
+        <Button 
+          color="red" 
+          variant="light" 
+          leftSection={<IconTrash size={16} />}
+          onClick={openDeleteModal}
+        >
+          Delete Account
+        </Button>
+      </Group>
+
+      {/* Delete Confirmation Modal */}
+      <Modal 
+        opened={deleteModalOpened} 
+        onClose={closeDeleteModal} 
+        title={<Group gap="xs"><IconAlertTriangle color="red" /><Text fw={700} c="red">Confirm Deletion</Text></Group>}
+        centered
+        overlayProps={{ blur: 3 }}
+      >
+        <Text size="sm" mb="xl">
+          Are you absolutely sure you want to delete your account? This action is irreversible and all your data, including reports and settings, will be permanently removed.
+        </Text>
+        <Group justify="flex-end">
+          <Button variant="default" onClick={closeDeleteModal} disabled={isDeleting}>Cancel</Button>
+          <Button 
+            color="red" 
+            loading={isDeleting}
+            onClick={async () => {
+              setIsDeleting(true);
+              const success = await handleDeleteAccount();
+              setIsDeleting(false);
+              if (success) {
+                closeDeleteModal();
+                router.push("/authentication/login");
+              }
+            }}
+          >
+            Yes, delete my account
+          </Button>
+        </Group>
+      </Modal>
+
     </Card>
   );
 };

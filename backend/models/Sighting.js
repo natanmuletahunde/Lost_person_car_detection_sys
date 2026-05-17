@@ -8,7 +8,7 @@ const sightingSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['person', 'vehicle'],
+    enum: ['person', 'vehicle', 'cctv'],
     required: [true, 'Sighting type is required'],
   },
   name: {
@@ -43,6 +43,10 @@ const sightingSchema = new mongoose.Schema({
   images: [{
     type: String,
   }],
+  caseId: {
+    type: mongoose.Schema.Types.ObjectId,
+    default: null,
+  },
   status: {
     type: String,
     enum: ['pending', 'reviewed', 'confirmed', 'resolved'],

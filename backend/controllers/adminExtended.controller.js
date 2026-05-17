@@ -5,6 +5,8 @@ const Sighting = require('../models/Sighting');
 const Subscription = require('../models/Subscription');
 const Feedback = require('../models/Feedback');
 const Alert = require('../models/Alert');
+const Notification = require('../models/Notification');
+const Detection = require('../models/Detection');
 const ApiResponse = require('../utils/ApiResponse');
 
 const getAllUsers = async (req, res, next) => {
@@ -245,6 +247,174 @@ const getCaseDetail = async (req, res, next) => {
   }
 };
 
+const getPendingVehicleValidations = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 10, search } = req.query;
+    const skip = (page - 1) * limit;
+
+    const query = { verificationStatus: 'Pending', ownershipDocumentUrl: { $exists: true, $ne: [] } };
+    
+    if (search) {
+      query.$or = [
+        { brand: { $regex: search, $options: 'i' } },
+        { model: { $regex: search, $options: 'i' } },
+        { plateNumber: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const [vehicles, total] = await Promise.all([
+      MissingVehicle.find(query).skip(skip).limit(parseInt(limit)).sort({ createdAt: -1 }),
+      MissingVehicle.countDocuments(query)
+    ]);
+
+    return ApiResponse.success(res, 'Pending vehicles retrieved', {
+      vehicles,
+      pagination: { page: parseInt(page), limit: parseInt(limit), total, pages: Math.ceil(total / limit) }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const verifyVehicleDocument = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { action, reason } = req.body; // action: 'approve' or 'reject'
+
+    if (!['approve', 'reject'].includes(action)) {
+      return ApiResponse.error(res, 'Invalid action', 400);
+    }
+
+    const vehicle = await MissingVehicle.findById(id);
+    if (!vehicle) {
+      return ApiResponse.error(res, 'Vehicle not found', 404);
+    }
+
+    if (action === 'approve') {
+      vehicle.verificationStatus = 'Verified';
+      vehicle.verified = true;
+      vehicle.status = 'Active';
+    } else {
+      vehicle.verificationStatus = 'Rejected';
+      vehicle.verified = false;
+      vehicle.status = 'Rejected';
+      if (reason) {
+        vehicle.notes.push({ text: `Document rejected: ${reason}`, addedAt: new Date() });
+      }
+    }
+
+    await vehicle.save();
+
+    // Send in-app notification to the reporter
+    const reporterUserId = vehicle.reportedBy?.userId;
+    if (reporterUserId) {
+      const vehicleName = [vehicle.brand, vehicle.model].filter(Boolean).join(' ') || 'Your vehicle';
+      const plateInfo = vehicle.plateNumber ? ` (${vehicle.plateNumber})` : '';
+
+      const notificationTitle = action === 'approve'
+        ? '✅ Ownership Document Approved'
+        : '❌ Ownership Document Rejected';
+
+      const notificationMessage = action === 'approve'
+        ? `Your ownership document for ${vehicleName}${plateInfo} has been reviewed and approved. Your case is now fully verified.`
+        : `Your ownership document for ${vehicleName}${plateInfo} has been reviewed and rejected.${reason ? ` Reason: ${reason}` : ' Please re-upload a valid ownership document.'}`;
+
+      await Notification.create({
+        recipient: reporterUserId,
+        title: notificationTitle,
+        message: notificationMessage,
+        type: action === 'approve' ? 'success' : 'warning',
+        priority: 'high',
+      });
+    }
+
+    return ApiResponse.success(res, `Vehicle document ${action}d successfully`, { vehicle });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const verifyCase = async (req, res, next) => {
+  try {
+    const { id, type } = req.params;
+    const { action } = req.body; // 'approve' or 'reject'
+
+    if (!['approve', 'reject'].includes(action)) {
+      return ApiResponse.error(res, 'Invalid action', 400);
+    }
+
+    let model;
+    if (type === 'person') model = MissingPerson;
+    else if (type === 'vehicle') model = MissingVehicle;
+    else return ApiResponse.error(res, 'Invalid type', 400);
+
+    const caseItem = await model.findById(id);
+    if (!caseItem) return ApiResponse.error(res, 'Case not found', 404);
+
+    caseItem.verified = action === 'approve';
+    caseItem.status = action === 'approve' ? 'Active' : 'Rejected';
+    await caseItem.save();
+
+    // Notify the reporter
+    const reporterUserId = caseItem.reportedBy?.userId;
+    if (reporterUserId) {
+      const caseName = type === 'vehicle'
+        ? `${caseItem.brand || ''} ${caseItem.model || ''}`.trim() || 'Your vehicle'
+        : `${caseItem.firstName || ''} ${caseItem.lastName || ''}`.trim() || 'Your person report';
+
+      await Notification.create({
+        recipient: reporterUserId,
+        title: action === 'approve' ? '✅ Report Approved' : '❌ Report Rejected',
+        message: action === 'approve'
+          ? `Your report for "${caseName}" has been approved and is now visible to the public.`
+          : `Your report for "${caseName}" has been reviewed and not approved. Please contact support if you believe this is a mistake.`,
+        type: action === 'approve' ? 'success' : 'warning',
+        priority: 'high',
+      });
+    }
+
+    return ApiResponse.success(res, `Case ${action}d successfully`, { caseItem });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteCase = async (req, res, next) => {
+  try {
+    const { id, type } = req.params;
+
+    if (!type) {
+      return ApiResponse.error(res, 'Missing type parameter', 400);
+    }
+
+    let model;
+    if (type === 'person') {
+      model = MissingPerson;
+    } else if (type === 'vehicle') {
+      model = MissingVehicle;
+    } else {
+      return ApiResponse.error(res, 'Invalid type', 400);
+    }
+
+    const caseItem = await model.findById(id);
+    if (!caseItem) {
+      return ApiResponse.error(res, 'Case not found', 404);
+    }
+
+    await model.findByIdAndDelete(id);
+
+    // Also delete associated sightings and detections
+    await Sighting.deleteMany({ caseId: id });
+    if (type === 'person') {
+      await Detection.deleteMany({ registrationId: id });
+    }
+
+    return ApiResponse.success(res, 'Case deleted successfully', {});
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getFinanceStats = async (req, res, next) => {
   try {
     const { period = '30d' } = req.query;
@@ -374,21 +544,21 @@ const sendBulkNotification = async (req, res, next) => {
       targetUsers = await User.find();
     }
 
-    const alerts = targetUsers.map(user => ({
-      userId: user._id,
-      type,
+    const notifications = targetUsers.map(user => ({
+      recipient: user._id,
       title: title || 'Notification',
       message,
-      status: 'unread',
-      createdAt: new Date()
+      type: type || 'general',
+      priority: 'normal',
+      isRead: false
     }));
 
-    if (alerts.length > 0) {
-      await Alert.insertMany(alerts);
+    if (notifications.length > 0) {
+      await Notification.insertMany(notifications);
     }
 
     return ApiResponse.success(res, 'Bulk notifications sent', {
-      sent: alerts.length,
+      sent: notifications.length,
       recipients: targetUsers.map(u => u.email)
     });
   } catch (error) {
@@ -421,29 +591,77 @@ const getDashboardStats = async (req, res, next) => {
   try {
     const [
       totalUsers,
-      totalCases,
-      activeCases,
-      resolvedCases,
+      missingPersonCount,
+      missingVehicleCount,
+      activePersons,
+      activeVehicles,
+      resolvedPersons,
+      resolvedVehicles,
       totalSightings,
       totalFeedback
     ] = await Promise.all([
       User.countDocuments(),
-      MissingPerson.countDocuments() + MissingVehicle.countDocuments(),
-      MissingPerson.countDocuments({ status: 'Active' }) + MissingVehicle.countDocuments({ status: 'Active' }),
-      MissingPerson.countDocuments({ status: 'Resolved' }) + MissingVehicle.countDocuments({ status: 'Resolved' }),
+      MissingPerson.countDocuments(),
+      MissingVehicle.countDocuments(),
+      MissingPerson.countDocuments({ status: 'Active' }),
+      MissingVehicle.countDocuments({ status: 'Active' }),
+      MissingPerson.countDocuments({ status: 'Resolved' }),
+      MissingVehicle.countDocuments({ status: 'Resolved' }),
       Sighting.countDocuments(),
       Feedback.countDocuments()
     ]);
+    const activeCases = activePersons + activeVehicles;
+    const resolvedCases = resolvedPersons + resolvedVehicles;
+    const totalCases = missingPersonCount + missingVehicleCount;
+
+    // --- Calculate weekly stats for the last 7 days ---
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
+
+    const [recentPersons, recentVehicles, recentSubscriptions] = await Promise.all([
+      MissingPerson.find({ createdAt: { $gte: sevenDaysAgo } }).select('createdAt'),
+      MissingVehicle.find({ createdAt: { $gte: sevenDaysAgo } }).select('createdAt'),
+      Subscription.find({ createdAt: { $gte: sevenDaysAgo } }).select('createdAt amount')
+    ]);
+
+    const weeklyStatsMap = {};
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+      weeklyStatsMap[dayName] = { name: dayName, Subscription: 0, Registration: 0 };
+    }
+
+    [...recentPersons, ...recentVehicles].forEach(item => {
+      const dayName = new Date(item.createdAt).toLocaleDateString('en-US', { weekday: 'short' });
+      if (weeklyStatsMap[dayName]) {
+        weeklyStatsMap[dayName].Registration += 1;
+      }
+    });
+
+    recentSubscriptions.forEach(item => {
+      const dayName = new Date(item.createdAt).toLocaleDateString('en-US', { weekday: 'short' });
+      if (weeklyStatsMap[dayName]) {
+        weeklyStatsMap[dayName].Subscription += item.amount || 0;
+      }
+    });
+
+    const weeklyStats = Object.values(weeklyStatsMap);
+    // ----------------------------------------------------
 
     return ApiResponse.success(res, 'Dashboard stats retrieved', {
       stats: {
         totalUsers,
         totalCases,
+        missingPersonCount,
+        missingVehicleCount,
         activeCases,
         resolvedCases,
         totalSightings,
         totalFeedback,
-        resolutionRate: totalCases > 0 ? ((resolvedCases / totalCases) * 100).toFixed(1) : 0
+        resolutionRate: totalCases > 0 ? ((resolvedCases / totalCases) * 100).toFixed(1) : 0,
+        weeklyStats
       }
     });
   } catch (error) {
@@ -459,10 +677,14 @@ module.exports = {
   getAllCases,
   updateCaseStatus,
   getCaseDetail,
+  deleteCase,
   getFinanceStats,
   getAllFeedback,
   respondToFeedback,
   sendBulkNotification,
   getNotificationsSettings,
-  getDashboardStats
+  getDashboardStats,
+  getPendingVehicleValidations,
+  verifyVehicleDocument,
+  verifyCase
 };

@@ -29,6 +29,8 @@ import {
   IconHistory,
   IconSettings,
   IconMail,
+  IconAlertCircle,
+  IconMessage,
 } from "@tabler/icons-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -202,6 +204,30 @@ export default function DashboardHeader({
               </Menu>
             )}
 
+            {/* Direct Notifications Page Icon */}
+            <Indicator
+              inline
+              label={unreadCount}
+              size={16}
+              color="red"
+              disabled={unreadCount === 0}
+            >
+              <ActionIcon
+                variant="light"
+                color="blue"
+                size={isMobile ? "md" : "lg"}
+                radius="xl"
+                component={Link}
+                href={getUserRoute("/user/notifications")}
+                title="Notifications"
+                style={{
+                  border: `1.5px solid ${colorScheme === "dark" ? "#2f80ed55" : "#2f80ed33"}`,
+                }}
+              >
+                <IconMail size={isMobile ? 18 : 22} />
+              </ActionIcon>
+            </Indicator>
+
             {/* Theme Toggle */}
             {user && (
               <ActionIcon
@@ -334,9 +360,17 @@ export default function DashboardHeader({
                     </Menu.Item>
                     <Menu.Item
                       leftSection={<IconBell size={18} />}
-                      onClick={() => router.push(getUserRoute("/user/alert"))}
+                      component={Link}
+                      href={getUserRoute("/user/notifications")}
                     >
-                      My Notifications
+                      Notifications
+                    </Menu.Item>
+                    <Menu.Item
+                      leftSection={<IconAlertCircle size={18} />}
+                      component={Link}
+                      href={getUserRoute("/user/alert")}
+                    >
+                      My Alerts
                     </Menu.Item>
                     <Menu.Item
                       leftSection={<IconHistory size={18} />}
@@ -351,6 +385,13 @@ export default function DashboardHeader({
                       href={getUserRoute("/user/settings")}
                     >
                       Account Settings
+                    </Menu.Item>
+                    <Menu.Item
+                      leftSection={<IconMessage size={18} />}
+                      component={Link}
+                      href={getUserRoute("/user/feedback")}
+                    >
+                      Give Feedback
                     </Menu.Item>
                   </Stack>
                   <Menu.Divider />

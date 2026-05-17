@@ -1,8 +1,11 @@
 const Detection = require('../models/Detection');
 const MissingPerson = require('../models/MissingPerson');
+const Notification = require('../models/Notification');
+const Sighting = require('../models/Sighting');
 const bot = require('../telegramBot');
 const axios = require('axios');
 const { SerialPort } = require('serialport');
+const { isValidObjectId } = require('../utils/helpers');
 
 // ==============================
 // GSM SETUP
@@ -151,6 +154,46 @@ exports.createDetection = async (req, res) => {
     console.log(`✅ Detection saved for ${detection.name}`);
 
     const reporter = matchedPerson.reportedBy;
+
+    // ===================== CREATE SIGHTING RECORD =====================
+    if (reporter && reporter.userId && isValidObjectId(reporter.userId)) {
+      try {
+        const cctvSighting = new Sighting({
+          user: reporter.userId,
+          type: 'cctv',
+          name: detection.name,
+          description: `Automatic ML Detection via CCTV. Confidence: ${(confidence * 100).toFixed(1)}%`,
+          location: {
+            type: 'Point',
+            coordinates: [lon, lat], // Longitude first for GeoJSON
+            address: locationString
+          },
+          images: [detectionImage],
+          caseId: registrationId,
+          status: 'pending'
+        });
+        await cctvSighting.save();
+        console.log('✅ CCTV Sighting record created');
+      } catch (sightingErr) {
+        console.error('❌ Error creating CCTV Sighting:', sightingErr.message);
+      }
+    }
+
+    // ===================== IN-APP NOTIFICATION =====================
+    if (reporter && reporter.userId && isValidObjectId(reporter.userId)) {
+      try {
+        await Notification.create({
+          recipient: reporter.userId,
+          title: 'ML Detection Match!',
+          message: `The ML system detected a potential match for ${detection.name} at location: ${locationString} with ${(confidence * 100).toFixed(1)}% confidence.`,
+          type: 'alert',
+          priority: 'high'
+        });
+        console.log('✅ In-App Notification Sent');
+      } catch (notifErr) {
+        console.error('❌ In-App Notification Error:', notifErr.message);
+      }
+    }
 
     // ===================== TELEGRAM =====================
     if (reporter && reporter.telegramChatId) {

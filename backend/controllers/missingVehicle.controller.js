@@ -9,11 +9,16 @@ const User = require('../models/User');
 exports.createMissingVehicle = async (req, res) => {
   try {
     const fileGroups = req.files || {};
-    const imageFiles = Array.isArray(fileGroups)
-      ? fileGroups
-      : fileGroups.images || [];
+    const imageFiles = Array.isArray(fileGroups) ? fileGroups : fileGroups.images || [];
+    const ownershipFiles = fileGroups.ownershipDocument || [];
+
     const imageUrls = imageFiles.map((f) => `/uploads/${f.filename}`);
     const imagePreview = imageUrls[0] || req.body.imagePreview || undefined;
+
+    let ownershipDocumentUrl = [];
+    if (ownershipFiles.length > 0) {
+      ownershipDocumentUrl = ownershipFiles.map(f => `/uploads/${f.filename}`);
+    }
 
     const authReportedBy = req.user
       ? {
@@ -23,6 +28,8 @@ exports.createMissingVehicle = async (req, res) => {
           email: req.user.email || '',
           phone: req.user.phone || '',
           role: req.user.role || 'user',
+          telegramChatId: req.user.telegramChatId || "",
+          telegramUsername: req.user.telegramUsername || "",
         }
       : null;
 
@@ -51,14 +58,26 @@ exports.createMissingVehicle = async (req, res) => {
       reportedBy.telegramUsername = req.body.telegramUsername;
     }
 
+    if (reportedBy.userId) {
+      const userDoc = await User.findById(reportedBy.userId);
+      if (userDoc && userDoc.registrations >= 1 && !userDoc.hasPaidSubscription) {
+        return res.status(403).json({
+          success: false,
+          message: 'You have used your 1 free registration. Please purchase a subscription to report more cases.',
+        });
+      }
+    }
+
     const caseId = `CASE-MV-${Date.now()}`;
 
     const vehicle = new MissingVehicle({
       ...req.body,
       reportedBy,
       imagePreview,
+      ownershipDocumentUrl,
       caseId,
-      status: 'Active',
+      status: 'Pending',
+      verificationStatus: 'Pending',
       reportDate: new Date(),
     });
 
@@ -86,7 +105,7 @@ exports.createMissingVehicle = async (req, res) => {
 // ==============================
 exports.getMissingVehicles = async (req, res) => {
   try {
-    const vehicles = await MissingVehicle.find().sort({ createdAt: -1 });
+    const vehicles = await MissingVehicle.find({ verified: true, status: 'Active' }).sort({ createdAt: -1 });
     res.json({ success: true, data: vehicles });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -114,18 +133,20 @@ exports.getMyMissingVehicles = async (req, res) => {
 // ==============================
 exports.getMissingVehicleById = async (req, res) => {
   try {
-    const vehicle = await MissingVehicle.findById(req.params.id);
+    const vehicle = await MissingVehicle.findOne({ _id: req.params.id, verified: true, status: 'Active' });
 
     if (!vehicle) {
       return res.status(404).json({
         success: false,
-        message: 'Vehicle not found'
+        message: 'Vehicle not found or not verified'
       });
     }
 
     const sightings = await Sighting.find({
-      type: 'vehicle',
-      description: { $regex: vehicle.plateNumber, $options: 'i' }
+      $or: [
+        { caseId: vehicle._id },
+        { type: 'vehicle', description: { $regex: vehicle.plateNumber, $options: 'i' } }
+      ]
     });
 
     const detections = await Detection.find({

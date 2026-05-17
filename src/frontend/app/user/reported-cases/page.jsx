@@ -111,6 +111,13 @@ const toBackendStatus = (status) => {
   return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 };
 
+const getImageUrl = (path) => {
+  if (!path) return null;
+  if (path.startsWith('http') || path.startsWith('data:')) return path;
+  const baseUrl = API_BASE_URL.replace('/api/v1', '');
+  return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+};
+
 // Status options
 const STATUS_OPTIONS = [
   { value: 'all', label: 'All Status', color: 'gray' },
@@ -330,7 +337,8 @@ export default function ReportedCasesPage() {
           lastUpdated: item.lastUpdated || item.reportDate || new Date().toISOString(),
           reportedBy: item.reportedBy,
           icon: <IconUser size={16} />,
-          category: 'person'
+          category: 'person',
+          image: item.images?.[0] ? getImageUrl(item.images[0]) : null
         })),
         ...vehiclesData.map(item => ({
           id: item._id || item.id,
@@ -360,7 +368,8 @@ export default function ReportedCasesPage() {
           lastUpdated: item.lastUpdated || item.reportDate || new Date().toISOString(),
           reportedBy: item.reportedBy,
           icon: <IconCar size={16} />,
-          category: 'vehicle'
+          category: 'vehicle',
+          image: item.imagePreview ? getImageUrl(item.imagePreview) : null
         }))
       ];
 
@@ -1174,7 +1183,11 @@ export default function ReportedCasesPage() {
                   <Table.Tr key={caseItem.id}>
                     <Table.Td>
                       <Group gap="xs">
-                        {caseItem.icon}
+                        {caseItem.image ? (
+                          <Avatar src={caseItem.image} alt={caseItem.displayName} size="sm" radius="xl" />
+                        ) : (
+                          caseItem.icon
+                        )}
                         <Box>
                           <Text fw={600} size="sm">{caseItem.caseId}</Text>
                           <CopyButton value={caseItem.caseId}>
@@ -1360,22 +1373,31 @@ export default function ReportedCasesPage() {
                 }}
               >
                 <Flex justify="space-between" align="start" mb="md">
-                  <Box>
-                    <Badge
-                      color={caseItem.type === 'Person' ? 'grape' : 'orange'}
-                      variant="light"
-                      size="sm"
-                      mb={4}
-                    >
-                      {caseItem.type}
-                    </Badge>
-                    <Text fw={700} size="lg" style={{ color: PRIMARY_DARK }}>
-                      {caseItem.displayName}
-                    </Text>
-                    <Text size="sm" c="dimmed">
-                      {caseItem.caseId}
-                    </Text>
-                  </Box>
+                  <Group wrap="nowrap" align="start">
+                    {caseItem.image ? (
+                      <Avatar src={caseItem.image} alt={caseItem.displayName} size="lg" radius="md" />
+                    ) : (
+                      <Avatar size="lg" radius="md" color={caseItem.type === 'Person' ? 'grape' : 'orange'}>
+                        {caseItem.icon}
+                      </Avatar>
+                    )}
+                    <Box>
+                      <Badge
+                        color={caseItem.type === 'Person' ? 'grape' : 'orange'}
+                        variant="light"
+                        size="sm"
+                        mb={4}
+                      >
+                        {caseItem.type}
+                      </Badge>
+                      <Text fw={700} size="lg" style={{ color: PRIMARY_DARK }}>
+                        {caseItem.displayName}
+                      </Text>
+                      <Text size="sm" c="dimmed">
+                        {caseItem.caseId}
+                      </Text>
+                    </Box>
+                  </Group>
                   <Menu position="bottom-end">
                     <Menu.Target>
                       <ActionIcon variant="subtle" color="gray">

@@ -20,8 +20,8 @@ const notificationSchema = new mongoose.Schema(
 
     type: {
       type: String,
-      enum: ["feedback", "alert", "system"],
-      default: "system",
+      enum: ["feedback", "alert", "system", "general", "info", "success", "warning"],
+      default: "general",
     },
 
     priority: {

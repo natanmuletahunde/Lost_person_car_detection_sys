@@ -223,14 +223,15 @@ export const VehicleDetailsStep = ({
         </Flex>
         <FileInput
           name="ownershipDoc"
-          placeholder="Choose file..."
+          placeholder="Choose files..."
           accept="image/jpeg,image/png,image/webp,application/pdf"
+          multiple
           onChange={setOwnershipDoc}
-          value={ownershipDoc}
+          value={ownershipDoc || []}
           radius="md"
           clearable
           leftSection={<IconUpload size={16} color={PRIMARY_COLOR} />}
-          description="Accepted formats: JPG, PNG, WebP, PDF (max 10MB)"
+          description="Accepted formats: JPG, PNG, WebP, PDF (max 10MB each, up to 10 files)"
           variant="filled"
           error={ownershipDocError}
         />

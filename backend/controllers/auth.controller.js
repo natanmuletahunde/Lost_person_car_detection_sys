@@ -197,6 +197,22 @@ const logout = async (req, res, next) => {
   }
 };
 
+// ================= DELETE MY ACCOUNT =================
+const deleteMyAccount = async (req, res, next) => {
+  try {
+    const user = await User.findByIdAndDelete(req.user._id);
+
+    if (!user) {
+      return ApiResponse.error(res, 'User not found', 404);
+    }
+
+    return ApiResponse.success(res, 'Account deleted successfully');
+
+  } catch (error) {
+    next(error);
+  }
+};
+
 
 // ================= REFRESH TOKEN =================
 const refreshToken = async (req, res, next) => {
@@ -241,5 +257,6 @@ module.exports = {
   updateProfile,
   changePassword,
   logout,
-  refreshToken
+  refreshToken,
+  deleteMyAccount
 };

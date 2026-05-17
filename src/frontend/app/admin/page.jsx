@@ -8,7 +8,7 @@ import {
 } from '@mantine/core';
 import { 
   IconSearch, IconSettings, IconBell, IconUsers, IconShoppingCart, IconCar, 
-  IconChevronRight 
+  IconChevronRight, IconCircleCheck 
 } from '@tabler/icons-react';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, 
@@ -66,17 +66,8 @@ export default function FullWidthDashboard() {
   }, []);
 
   const weeklyData = useMemo(() => {
-    const byMonth = finance?.revenue?.byMonth;
-    if (!byMonth || typeof byMonth !== 'object') return FALLBACK_WEEKLY;
-    const entries = Object.entries(byMonth);
-    if (entries.length === 0) return FALLBACK_WEEKLY;
-    const regBase = dash?.stats?.totalCases ? Math.round(dash.stats.totalCases / entries.length) : 0;
-    return entries.map(([name, revenue]) => ({
-      name,
-      Subscription: Number(revenue) || 0,
-      Registration: regBase,
-    }));
-  }, [finance, dash]);
+    return dash?.stats?.weeklyStats || FALLBACK_WEEKLY;
+  }, [dash]);
 
   const pieData = useMemo(() => {
     const s = dash?.stats;
@@ -147,22 +138,22 @@ export default function FullWidthDashboard() {
       {/* TOP STAT CARDS */}
       <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="lg" mb="lg">
         <StatCard
-          label="Total users"
-          value={dash?.stats?.totalUsers != null ? String(dash.stats.totalUsers) : '—'}
+          label="Missing Persons"
+          value={dash?.stats?.missingPersonCount != null ? String(dash.stats.missingPersonCount) : '—'}
           color="#FFB800"
           icon={<IconUsers />}
         />
         <StatCard
-          label="Total cases"
-          value={dash?.stats?.totalCases != null ? String(dash.stats.totalCases) : '—'}
-          color="#FFB800"
-          icon={<IconShoppingCart />}
-        />
-        <StatCard
-          label="Sightings"
-          value={dash?.stats?.totalSightings != null ? String(dash.stats.totalSightings) : '—'}
+          label="Missing Vehicles"
+          value={dash?.stats?.missingVehicleCount != null ? String(dash.stats.missingVehicleCount) : '—'}
           color="#FFB800"
           icon={<IconCar />}
+        />
+        <StatCard
+          label="Resolved Cases"
+          value={dash?.stats?.resolvedCases != null ? String(dash.stats.resolvedCases) : '—'}
+          color="#FFB800"
+          icon={<IconCircleCheck />}
         />
       </SimpleGrid>
 

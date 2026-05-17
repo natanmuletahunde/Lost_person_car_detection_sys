@@ -191,18 +191,31 @@ export default function UnifiedRegisterPage() {
     setFormValues(prev => ({ ...prev, specialCategory: specialCategory || '' }));
   }, [specialCategory]);
 
-  const validateOwnershipDoc = (file) => {
-    if (!file) { setOwnershipDocError(''); return true; }
+  const validateOwnershipDoc = (files) => {
+    if (!files || (Array.isArray(files) && files.length === 0)) { 
+      setOwnershipDocError(''); 
+      return true; 
+    }
+    const fileArray = Array.isArray(files) ? files : [files];
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-    if (!allowedTypes.includes(file.type)) { setOwnershipDocError('Only JPG, PNG, WebP, or PDF files are allowed.'); return false; }
-    if (file.size > 10 * 1024 * 1024) { setOwnershipDocError('File size must be less than 10 MB.'); return false; }
+    
+    for (const file of fileArray) {
+      if (!allowedTypes.includes(file.type)) { 
+        setOwnershipDocError('Only JPG, PNG, WebP, or PDF files are allowed.'); 
+        return false; 
+      }
+      if (file.size > 10 * 1024 * 1024) { 
+        setOwnershipDocError('Each file size must be less than 10 MB.'); 
+        return false; 
+      }
+    }
     setOwnershipDocError('');
     return true;
   };
 
-  const handleOwnershipDocChange = (file) => {
-    setOwnershipDoc(file);
-    validateOwnershipDoc(file);
+  const handleOwnershipDocChange = (files) => {
+    setOwnershipDoc(files);
+    validateOwnershipDoc(files);
   };
 
   const validateStep = (step) => {

@@ -27,19 +27,34 @@ const adminRoutes = require("./routes/admin.routes");
 const missingPersonRoutes = require("./routes/missingPerson.routes");
 const missingVehicleRoutes = require("./routes/missingVehicle.routes");
 const notificationAdminRoutes = require("./routes/notification.admin.route");
+const notificationUserRoutes = require("./routes/notification.user.route");
 // 🔥 NEW: split feedback routes
 const feedbackUserRoutes = require("./routes/feedback.user.routes");
 const feedbackAdminRoutes = require("./routes/feedback.admin.route");
 const chapaRoutes = require("./routes/chapa.routes");
 const publicRoutes = require("./routes/public.routes");
 
+const pcLocationRoutes = require("./routes/pcLocation.routes");
 const app = express();
 
 // ================= DB =================
 connectDB();
 
 // ================= SECURITY =================
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        imgSrc: ["'self'", "data:", "blob:", "http://localhost:5000", "http://localhost:3000"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        connectSrc: ["'self'", "http://localhost:5000", "ws://localhost:3000"],
+      },
+    },
+  })
+);
 
 app.use(cors({
   origin: 'http://localhost:3000',
@@ -66,6 +81,11 @@ app.use(expressSanitizer());
 // ================= FILES =================
 const uploadPath = path.join(process.cwd(), "uploads");
 
+app.use("/uploads", (req, res, next) => {
+  res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  next();
+});
 app.use(
   "/uploads",
   express.static(uploadPath, {
@@ -98,6 +118,7 @@ app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/sightings", sightingRoutes);
 app.use("/api/v1/detections", detectionRoutes);
+app.use("/api/v1/pc-location", pcLocationRoutes);
 // 🔥 USER feedback
 app.use("/api/v1/feedback", protect, feedbackUserRoutes);
 
@@ -112,6 +133,11 @@ app.use(
   protect,
   authorize("admin"),
   notificationAdminRoutes
+);
+app.use(
+  "/api/v1/notifications",
+  protect,
+  notificationUserRoutes
 );
 
 // 🔥 ADMIN feedback (PATCH /:id with { text, status }; list overlaps GET with admin.routes /feedback)

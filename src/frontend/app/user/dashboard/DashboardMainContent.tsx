@@ -62,6 +62,15 @@ const GpsTracker = dynamic(() => import("../../components/GpsTracker"), {
   ssr: false,
 });
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api/v1";
+
+const getImageUrl = (path: string | null) => {
+  if (!path) return null;
+  if (path.startsWith("http") || path.startsWith("data:")) return path;
+  const baseUrl = API_BASE_URL.replace("/api/v1", "");
+  return `${baseUrl}${path.startsWith("/") ? "" : "/"}${path}`;
+};
+
 interface DashboardMainContentProps {
   user: any;
   missingPersons: any[];

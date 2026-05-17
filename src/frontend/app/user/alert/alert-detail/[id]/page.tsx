@@ -62,26 +62,16 @@ import Link from "next/link";
 import Image from "next/image";
 import MainFooter from "../../../../components/MainFooter";
 import { apiClient } from "../../../../lib/apiClient";
-import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-
-// Fix Leaflet default icon paths (required for webpack)
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
-
-const DefaultIcon = L.icon({
-  iconUrl: icon,
-  shadowUrl: iconShadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-});
-L.Marker.prototype.options.icon = DefaultIcon;
+import iconRetina from 'leaflet/dist/images/marker-icon-2x.png';
 
 // ---------- API Configuration ----------
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api/v1';
 const MISSING_VEHICLES_API = `${API_BASE_URL}/missing-vehicles`;
 const MISSING_PERSONS_API = `${API_BASE_URL}/missing-persons`;
-const SIGHTINGS_API = `${API_BASE_URL}/sightings`;
+const MY_SIGHTINGS_API = `${API_BASE_URL}/sightings/my-sightings`;
 
 const extractData = (payload: any) => payload?.data ?? payload;
 const extractArray = (payload: any) => {
@@ -101,8 +91,15 @@ const determineVehicleType = (vehicle) => {
 
 const calculateDuration = (reportDate) => {
   if (!reportDate) return 'Unknown';
-  const days = Math.floor((new Date() - new Date(reportDate)) / (1000 * 60 * 60 * 24));
+  const days = Math.floor((new Date().getTime() - new Date(reportDate).getTime()) / (1000 * 60 * 60 * 24));
   return `${days} day${days !== 1 ? 's' : ''}`;
+};
+
+const getImageUrl = (path) => {
+  if (!path) return null;
+  if (path.startsWith("http") || path.startsWith("data:")) return path;
+  const baseUrl = API_BASE_URL.replace("/api/v1", "");
+  return `${baseUrl}${path.startsWith("/") ? "" : "/"}${path}`;
 };
 
 const getVehicleIcon = (type, size = 24) => {
@@ -138,6 +135,9 @@ const transformAlert = (item, type) => {
     detectionHistory: [],
     cctvInfo: item.cctvInfo || { confidence: 'N/A' },
     title: type === 'person' ? 'Missing Person Alert' : 'Missing Vehicle Alert',
+    imageUrl: type === 'person' 
+      ? getImageUrl(item.images?.[0]) || "/default-person.jpg"
+      : getImageUrl(item.imagePreview) || "/default-car.jpg",
   };
 };
 
@@ -252,42 +252,34 @@ export default function AlertDetailPage() {
         }
 
         // 2. Fetch sightings linked to this alert
-        const caseId = alert.code;
-        let sightingsUrl = `${SIGHTINGS_API}?originalCaseId=${caseId}`;
+        // Use the new MY_SIGHTINGS_API which users have access to, and filter by caseId
+        let sightingsUrl = `${MY_SIGHTINGS_API}?caseId=${alert.id}`;
         let sightingsRes = await apiClient(sightingsUrl);
         let sightings = [];
         if (sightingsRes.ok) {
           sightings = extractArray(await sightingsRes.json());
-        } else {
-          sightingsUrl = `${SIGHTINGS_API}?originalCaseId=${alertId}`;
-          sightingsRes = await apiClient(sightingsUrl);
-          if (sightingsRes.ok) {
-            sightings = extractArray(await sightingsRes.json());
-          }
         }
 
         // 3. Transform sightings into detection objects
         const detections = sightings.map((s, idx) => ({
           id: s._id || s.id,
           name: s.type === 'Person' ? s.name : s.plateNumber || `Sighting ${idx + 1}`,
-          location: s.location || 'Unknown',
-          date: s.date ? new Date(s.date).toLocaleDateString() : (s.reportDate ? new Date(s.reportDate).toLocaleDateString() : 'Unknown'),
-          time: s.time || (s.reportDate ? new Date(s.reportDate).toLocaleTimeString() : '00:00'),
-          accuracy: s.confidence || '85%',
-          type: s.type === 'Person' ? 'Suggestion' : 'CCTV',
+          location: s.location?.address || s.location || 'Unknown',
+          date: s.date ? new Date(s.date).toLocaleDateString() : (s.reportedAt ? new Date(s.reportedAt).toLocaleDateString() : 'Unknown'),
+          time: s.time || (s.reportedAt ? new Date(s.reportedAt).toLocaleTimeString() : '00:00'),
+          accuracy: (s.type === 'person' || s.type === 'Person') ? null : (s.confidence || '85%'),
+          type: (s.type === 'person' || s.type === 'Person') ? 'Person' : 'CCTV',
           status: s.status || 'active',
-          startDate: s.date || s.reportDate,
-          startTime: s.time || (s.reportDate ? new Date(s.reportDate).toLocaleTimeString() : '00:00'),
-          lat: s.latitude || 9.03 + (Math.random() - 0.5) * 0.1,
-          lng: s.longitude || 38.74 + (Math.random() - 0.5) * 0.1,
+          startDate: s.date || s.reportedAt,
+          startTime: s.time || (s.reportedAt ? new Date(s.reportedAt).toLocaleTimeString() : '00:00'),
+          lat: s.latitude || (s.location?.coordinates ? s.location.coordinates[1] : null) || 9.03 + (Math.random() - 0.5) * 0.1,
+          lng: s.longitude || (s.location?.coordinates ? s.location.coordinates[0] : null) || 38.74 + (Math.random() - 0.5) * 0.1,
           description: s.description,
         }));
 
         setAlertData(alert);
         setDetectionHistory(detections);
-        if (detections.length > 0) {
-          setSelectedDetection(detections[0]);
-        }
+        // Do NOT set selectedDetection by default so the map shows ALL pins on load
 
         createActionLog('alert_detail_view', {
           alertId: alert.id,
@@ -311,44 +303,96 @@ export default function AlertDetailPage() {
   useEffect(() => {
     if (!mapRef.current) return;
 
-    if (leafletMap.current) {
-      leafletMap.current.remove();
-      leafletMap.current = null;
-    }
+    let isMounted = true;
 
-    const map = L.map(mapRef.current).setView([9.03, 38.74], 12);
-    leafletMap.current = map;
+    const initMap = async () => {
+      // Dynamically import Leaflet to prevent SSR "window is not defined" errors
+      const L = (await import('leaflet')).default;
+      
+      // Fix Leaflet default icon paths dynamically using CDN to bypass Next.js Turbopack image loader issues
+      delete L.Icon.Default.prototype._getIconUrl;
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+      });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(map);
+      if (!isMounted) return;
 
-    markersRef.current.forEach(m => m.remove());
-    markersRef.current = [];
-
-    detectionHistory.forEach((detection) => {
-      if (detection.lat && detection.lng) {
-        const marker = L.marker([detection.lat, detection.lng])
-          .bindPopup(`
-            <b>${detection.name}</b><br>
-            ${detection.location}<br>
-            ${detection.date} ${detection.time}<br>
-            Accuracy: ${detection.accuracy}
-          `)
-          .on('click', () => {
-            setSelectedDetection(detection);
-          });
-        marker.addTo(map);
-        markersRef.current.push(marker);
+      if (leafletMap.current) {
+        leafletMap.current.remove();
+        leafletMap.current = null;
       }
-    });
 
-    if (markersRef.current.length > 0) {
-      const group = L.featureGroup(markersRef.current);
-      map.fitBounds(group.getBounds(), { padding: [50, 50] });
-    }
+      const map = L.map(mapRef.current).setView([9.03, 38.74], 12);
+      leafletMap.current = map;
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+
+      markersRef.current.forEach(m => m.remove());
+      markersRef.current = [];
+
+      detectionHistory.forEach((detection) => {
+        if (detection.lat && detection.lng) {
+          const marker = L.marker([detection.lat, detection.lng])
+            .bindPopup(`
+              <b>${detection.name}</b><br>
+              ${detection.location}<br>
+              ${detection.date} ${detection.time}<br>
+              ${detection.type !== 'Person' ? `Accuracy: ${detection.accuracy}` : `Type: Person`}
+            `)
+            .on('click', () => {
+              setSelectedDetection(detection);
+            });
+          marker.addTo(map);
+          markersRef.current.push(marker);
+        }
+      });
+
+      if (markersRef.current.length > 0) {
+        const group = L.featureGroup(markersRef.current);
+        const mapBounds = group.getBounds();
+        map.fitBounds(mapBounds, { padding: [50, 50] });
+        
+        // Add user's current location if available
+        if ('geolocation' in navigator) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const userLat = position.coords.latitude;
+              const userLng = position.coords.longitude;
+              
+              // Add a distinct circle marker for the user
+              L.circleMarker([userLat, userLng], {
+                color: '#ffffff', // White border
+                fillColor: '#2563eb', // Blue fill
+                fillOpacity: 1,
+                radius: 10,
+                weight: 3
+              }).addTo(map).bindPopup('<b>📍 Your Current Location</b>');
+              
+              // Adjust bounds to include both the user and all sightings
+              mapBounds.extend([userLat, userLng]);
+              map.fitBounds(mapBounds, { padding: [50, 50] });
+            },
+            (err) => {
+              console.warn('Geolocation error:', err);
+              notifications.show({
+                title: 'Location Unavailable',
+                message: 'Could not access your location. Please check your browser permissions.',
+                color: 'orange',
+              });
+            }
+          );
+        }
+      }
+    };
+
+    initMap();
 
     return () => {
+      isMounted = false;
       if (leafletMap.current) {
         leafletMap.current.remove();
         leafletMap.current = null;
@@ -601,10 +645,17 @@ export default function AlertDetailPage() {
         {/* Alert Header */}
         <Paper p="xl" mb="xl" withBorder radius="md" bg={paperBg}>
           <Group justify="space-between" mb="md" wrap="wrap">
-            <Box>
-              <Title order={2} mb="xs">
-                {alertData.title || alertData.brand}
-              </Title>
+            <Group gap="xl">
+              <Avatar 
+                src={alertData.imageUrl} 
+                size={120} 
+                radius="md" 
+                style={{ border: `2px solid ${borderColor}` }}
+              />
+              <Box>
+                <Title order={2} mb="xs">
+                  {alertData.title || alertData.brand}
+                </Title>
               <Group gap="lg" wrap="wrap">
                 <Badge size="lg" color={alertData.status === "active" ? "red" : "green"}>
                   {alertData.status.toUpperCase()}
@@ -623,7 +674,8 @@ export default function AlertDetailPage() {
                 </Group>
               </Group>
             </Box>
-            <Group>
+          </Group>
+          <Group>
               {/* ========== CHANGED to custom handler ========== */}
               <Button 
                 leftSection={<IconDownload size={18} />} 
@@ -819,7 +871,7 @@ export default function AlertDetailPage() {
                               {detection.time}
                             </Table.Td>
                             <Table.Td style={{ textAlign: "center" }}>
-                              {accuracy === "--" ? (
+                              {detection.type === "Person" || !accuracy || accuracy === "--" ? (
                                 <Text c="dimmed">--</Text>
                               ) : (
                                 <Badge
@@ -836,7 +888,9 @@ export default function AlertDetailPage() {
                             </Table.Td>
                             <Table.Td style={{ textAlign: "center" }}>
                               <Group justify="center" gap="xs">
-                                {detection.type === "Suggestion" ? (
+                                {detection.type === "Person" ? (
+                                  <IconUser size={14} color="#3b82f6" />
+                                ) : detection.type === "Suggestion" ? (
                                   <IconStar size={14} color="#f59e0b" />
                                 ) : (
                                   <IconCamera size={14} color="#3b82f6" />

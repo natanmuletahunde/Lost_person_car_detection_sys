@@ -8,7 +8,7 @@ router.post(
   protect,
   upload.fields([
     { name: 'images', maxCount: 20 },
-    { name: 'ownershipDocument', maxCount: 1 },
+    { name: 'ownershipDocument', maxCount: 10 },
   ]),
   controller.createMissingVehicle
 );

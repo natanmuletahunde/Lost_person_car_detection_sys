@@ -47,7 +47,7 @@ const mapApiFeedback = (item) => {
   return {
     id: item._id,
     user: { name: name || email || 'User', email, avatar: null },
-    rating: PRIORITY_RATING[item.priority] ?? 3,
+    rating: item.rating ?? (PRIORITY_RATING[item.priority] ?? 5),
     comment: item.message || item.subject || '',
     date: item.createdAt,
     status: statusLabel,
@@ -107,8 +107,13 @@ export default function FeedbackManagementPage() {
     (async () => {
       try {
         setLoadingFeedback(true);
-        const rows = await adminFetch('/admin/feedback');
-        if (cancelled || !Array.isArray(rows)) return;
+        const payload = await adminFetch('/admin/feedback');
+        if (cancelled) return;
+        
+        const rows = Array.isArray(payload)
+          ? payload
+          : (payload && Array.isArray(payload.feedback) ? payload.feedback : []);
+          
         setFeedback(rows.map(mapApiFeedback));
       } catch (e) {
         console.error(e);
