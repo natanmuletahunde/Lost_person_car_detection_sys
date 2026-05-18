@@ -28,22 +28,83 @@ const getTextColor = (colorScheme, light, dark) => (colorScheme === 'dark' ? dar
 
 // --- MOCK DATA ---
 const INITIAL_PLANS = [
-  { id: 1, name: 'Free', price: 0, interval: 'month', status: 'Active', subscribers: 124, features: ['Basic tracking', '1 vehicle', 'Email support'] },
-  { id: 2, name: 'Basic', price: 19.99, interval: 'month', status: 'Active', subscribers: 87, features: ['Advanced tracking', '3 vehicles', 'Priority email', 'Basic reports'] },
-  { id: 3, name: 'Pro', price: 49.99, interval: 'month', status: 'Active', subscribers: 43, features: ['Real‑time GPS', '10 vehicles', 'Phone support', 'Analytics dashboard'] },
-  { id: 4, name: 'Enterprise', price: 99.99, interval: 'month', status: 'Active', subscribers: 12, features: ['Unlimited vehicles', 'Dedicated account manager', 'API access', 'Custom reports'] },
-  { id: 5, name: 'Annual Basic', price: 199.99, interval: 'year', status: 'Draft', subscribers: 0, features: ['Same as Basic', '2 months free'] },
+  {
+    id: "monthly",
+    name: "Monthly",
+    price: 400,
+    interval: "month",
+    status: "Active",
+    subscribers: 124,
+    currency: "birr",
+    badge: "Basic Plan",
+    badgeColor: "blue",
+    features: [
+      "2 Providers",
+      "Client billing",
+      "Free staging",
+      "Code licence",
+      "White labelling",
+      "Data protection"
+    ],
+    color: `linear-gradient(135deg, #0029A6 0%, #0034D1 100%)`,
+    hoverColor: `linear-gradient(135deg, #0029A6 0%, #3358FF 100%)`,
+  },
+  {
+    id: "annual",
+    name: "Annual",
+    price: 360,
+    originalPrice: 400,
+    interval: "month",
+    status: "Active",
+    subscribers: 87,
+    currency: "birr",
+    badge: "SAVE 10%",
+    badgeColor: "green",
+    description: "0.00 birr when you have not yet to receive an invoice",
+    features: [
+      "Everything in Monthly plan",
+      "Referral program",
+      "Web customization",
+      "Marketing tools",
+      "Priority support 24/7",
+      "Advanced analytics"
+    ],
+    popular: true,
+    color: `linear-gradient(135deg, #001F6E 0%, #0034D1 100%)`,
+    hoverColor: `linear-gradient(135deg, #001F6E 0%, #3358FF 100%)`,
+  },
+  {
+    id: "enterprise",
+    name: "Enterprise",
+    price: 0,
+    interval: "",
+    status: "Active",
+    subscribers: 12,
+    currency: "",
+    badge: "Premium",
+    badgeColor: "violet",
+    features: [
+      "Everything in Annual plan",
+      "Unlimited providers",
+      "Dedicated account manager",
+      "Custom SLA agreements",
+      "Enterprise-grade support",
+      "Custom development"
+    ],
+    color: `linear-gradient(135deg, #1C1C84 0%, #3358FF 100%)`,
+    hoverColor: `linear-gradient(135deg, #1C1C84 0%, #4D72FF 100%)`,
+  },
 ];
 
 const INITIAL_TRANSACTIONS = [
-  { id: 'INV-001', date: '2026-02-12', customer: 'John Smith', email: 'john.smith@gmail.com', plan: 'Pro', amount: 49.99, status: 'Paid', invoiceUrl: '#' },
-  { id: 'INV-002', date: '2026-02-11', customer: 'Olivia Bennett', email: 'ollyben@gmail.com', plan: 'Basic', amount: 19.99, status: 'Paid', invoiceUrl: '#' },
-  { id: 'INV-003', date: '2026-02-10', customer: 'Daniel Warren', email: 'dwarren3@gmail.com', plan: 'Enterprise', amount: 99.99, status: 'Paid', invoiceUrl: '#' },
-  { id: 'INV-004', date: '2026-02-09', customer: 'Chloe Hayes', email: 'chloehhye@gmail.com', plan: 'Pro', amount: 49.99, status: 'Pending', invoiceUrl: '#' },
-  { id: 'INV-005', date: '2026-02-08', customer: 'Marcus Reed', email: 'reeds777@gmail.com', plan: 'Free', amount: 0, status: 'Paid', invoiceUrl: '#' },
-  { id: 'INV-006', date: '2026-02-07', customer: 'Alice Cooper', email: 'alice.c@gmail.com', plan: 'Basic', amount: 19.99, status: 'Overdue', invoiceUrl: '#' },
-  { id: 'INV-007', date: '2026-02-06', customer: 'Bob Marley', email: 'bob.m@gmail.com', plan: 'Pro', amount: 49.99, status: 'Paid', invoiceUrl: '#' },
-  { id: 'INV-008', date: '2026-02-05', customer: 'Emma Watson', email: 'emma.w@gmail.com', plan: 'Basic', amount: 19.99, status: 'Paid', invoiceUrl: '#' },
+  { id: 'INV-001', date: '2026-02-12', customer: 'John Smith', email: 'john.smith@gmail.com', plan: 'Monthly', amount: 400, status: 'Paid', invoiceUrl: '#' },
+  { id: 'INV-002', date: '2026-02-11', customer: 'Olivia Bennett', email: 'ollyben@gmail.com', plan: 'Annual', amount: 360, status: 'Paid', invoiceUrl: '#' },
+  { id: 'INV-003', date: '2026-02-10', customer: 'Daniel Warren', email: 'dwarren3@gmail.com', plan: 'Enterprise', amount: 0, status: 'Paid', invoiceUrl: '#' },
+  { id: 'INV-004', date: '2026-02-09', customer: 'Chloe Hayes', email: 'chloehhye@gmail.com', plan: 'Monthly', amount: 400, status: 'Pending', invoiceUrl: '#' },
+  { id: 'INV-005', date: '2026-02-08', customer: 'Marcus Reed', email: 'reeds777@gmail.com', plan: 'Enterprise', amount: 0, status: 'Paid', invoiceUrl: '#' },
+  { id: 'INV-006', date: '2026-02-07', customer: 'Alice Cooper', email: 'alice.c@gmail.com', plan: 'Annual', amount: 360, status: 'Overdue', invoiceUrl: '#' },
+  { id: 'INV-007', date: '2026-02-06', customer: 'Bob Marley', email: 'bob.m@gmail.com', plan: 'Monthly', amount: 400, status: 'Paid', invoiceUrl: '#' },
+  { id: 'INV-008', date: '2026-02-05', customer: 'Emma Watson', email: 'emma.w@gmail.com', plan: 'Annual', amount: 360, status: 'Paid', invoiceUrl: '#' },
 ];
 
 const MONTHLY_REVENUE = [
@@ -56,9 +117,10 @@ const MONTHLY_REVENUE = [
 ];
 
 const formatCurrency = (value) => {
-  return new Intl.NumberFormat('en-US', {
+  if (isNaN(value)) return value;
+  return new Intl.NumberFormat('en-ET', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'ETB',
     minimumFractionDigits: 2,
   }).format(value);
 };
@@ -90,6 +152,19 @@ export default function FinanceManagementPage() {
   const [pageSize, setPageSize] = useState('10');
   const [editingPlan, setEditingPlan] = useState(null);
   const [viewingPlan, setViewingPlan] = useState(null);
+
+  useEffect(() => {
+    const savedPlans = localStorage.getItem('subscription_plans');
+    if (savedPlans) {
+      try {
+        setPlans(JSON.parse(savedPlans));
+      } catch (e) {
+        console.error('Failed to parse plans from local storage', e);
+      }
+    } else {
+      localStorage.setItem('subscription_plans', JSON.stringify(INITIAL_PLANS));
+    }
+  }, []);
 
   // ---------- MODALS ----------
   const [addPlanOpened, addPlanHandlers] = useDisclosure(false);
@@ -152,14 +227,21 @@ export default function FinanceManagementPage() {
 
   // ---------- CRUD for Plans ----------
   const addPlan = (values) => {
-    const newId = Math.max(...plans.map(p => p.id), 0) + 1;
+    const newId = `plan_${Date.now()}`;
     const newPlan = {
       ...values,
       id: newId,
       subscribers: 0,
+      currency: "birr",
+      badgeColor: "blue", // default badge color
+      color: `linear-gradient(135deg, #0029A6 0%, #0034D1 100%)`,
+      hoverColor: `linear-gradient(135deg, #0029A6 0%, #3358FF 100%)`,
       features: values.features.split(',').map(f => f.trim()),
     };
-    setPlans([...plans, newPlan]);
+    const updatedPlans = [...plans, newPlan];
+    setPlans(updatedPlans);
+    localStorage.setItem('subscription_plans', JSON.stringify(updatedPlans));
+    
     notifications.show({
       title: 'Plan created',
       message: `${values.name} plan added`,
@@ -170,12 +252,18 @@ export default function FinanceManagementPage() {
   };
 
   const updatePlan = (values) => {
-    setPlans(prev => prev.map(p => p.id === values.id ? {
+    const updatedPlans = plans.map(p => p.id === values.id ? {
+      ...p,
       ...values,
+      price: Number(values.price),
       features: typeof values.features === 'string'
         ? values.features.split(',').map(f => f.trim())
         : values.features
-    } : p));
+    } : p);
+    
+    setPlans(updatedPlans);
+    localStorage.setItem('subscription_plans', JSON.stringify(updatedPlans));
+    
     notifications.show({
       title: 'Plan updated',
       message: `${values.name} updated`,
@@ -186,7 +274,10 @@ export default function FinanceManagementPage() {
   };
 
   const deletePlan = (id) => {
-    setPlans(prev => prev.filter(p => p.id !== id));
+    const updatedPlans = plans.filter(p => p.id !== id);
+    setPlans(updatedPlans);
+    localStorage.setItem('subscription_plans', JSON.stringify(updatedPlans));
+    
     notifications.show({
       title: 'Plan deleted',
       message: 'Plan removed',
@@ -275,10 +366,17 @@ export default function FinanceManagementPage() {
         </Box>
         <Group bg={headerBg} p={8} style={{ borderRadius: '30px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
           <Tooltip label="Settings">
-            <ActionIcon variant="subtle" color="gray"><IconSettings size={20} /></ActionIcon>
+            <Link href="/admin/settings" passHref style={{ textDecoration: 'none' }}>
+              <ActionIcon variant="subtle" color="blue"><IconSettings size={20} /></ActionIcon>
+            </Link>
           </Tooltip>
           <Tooltip label="Notifications">
-            <ActionIcon variant="subtle" color="red"><IconBell size={20} /></ActionIcon>
+            <Link href="/admin/notification" passHref style={{ textDecoration: 'none' }}>
+              <ActionIcon variant="subtle" color="red"><IconBell size={20} /></ActionIcon>
+            </Link>
+          </Tooltip>
+          <Tooltip label="Refresh data">
+            <ActionIcon variant="subtle" color="blue" onClick={() => window.location.reload()}><IconDownload size={20} /></ActionIcon>
           </Tooltip>
         </Group>
       </Group>
