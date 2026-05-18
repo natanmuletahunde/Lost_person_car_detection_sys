@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
-import { Box, Title, Text, Paper, Group, Button, Container, Alert, Badge, ActionIcon, useMantineTheme, useMantineColorScheme } from "@mantine/core";
-import { IconSettings, IconBell, IconArrowLeft } from "@tabler/icons-react";
+import { Box, Title, Text, Paper, Group, Button, Container, Alert, Badge, ActionIcon, useMantineTheme, useMantineColorScheme, Tooltip } from "@mantine/core";
+import { IconSettings, IconBell, IconArrowLeft, IconDownload } from "@tabler/icons-react";
+import Link from "next/link";
 import { SettingsNavigation } from "../../components/settings/SettingsNavigation";
 import { ProfileSection } from "../../components/settings/SettingsSections/ProfileSection";
 import { SecuritySection } from "../../components/settings/SettingsSections/SecuritySection";
@@ -55,8 +56,19 @@ export default function AdminSettingsPage() {
           <Badge color="blue" variant="light" size="sm">ADMIN</Badge>
         </Group>
         <Group gap="xs">
-          <ActionIcon variant="subtle" color="gray"><IconSettings size={20} /></ActionIcon>
-          <ActionIcon variant="subtle" color="red"><IconBell size={20} /></ActionIcon>
+          <Tooltip label="Settings">
+            <Link href="/admin/settings" passHref style={{ textDecoration: 'none' }}>
+              <ActionIcon variant="subtle" color="blue"><IconSettings size={20} /></ActionIcon>
+            </Link>
+          </Tooltip>
+          <Tooltip label="Notifications">
+            <Link href="/admin/notification" passHref style={{ textDecoration: 'none' }}>
+              <ActionIcon variant="subtle" color="red"><IconBell size={20} /></ActionIcon>
+            </Link>
+          </Tooltip>
+          <Tooltip label="Refresh">
+            <ActionIcon variant="subtle" color="blue" onClick={() => window.location.reload()}><IconDownload size={20} /></ActionIcon>
+          </Tooltip>
         </Group>
       </Group>
 
