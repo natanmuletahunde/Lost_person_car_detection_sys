@@ -29,6 +29,11 @@ DETECTION_COOLDOWN = 20 * 60
 SKIP_FRAMES = 10
 RESIZE_SCALE = 0.5
 
+# Device Location Settings (Set to None for automatic client-side geolocation)
+DEVICE_LATITUDE = None
+DEVICE_LONGITUDE = None
+DEVICE_LOCATION_NAME = None
+
 os.makedirs(SAVE_DIR, exist_ok=True)
 
 logging.basicConfig(
@@ -39,6 +44,40 @@ logging.basicConfig(
 # ==============================
 # UTILS
 # ==============================
+def get_device_location():
+    """Gets exact location of the device using client-side geolocation."""
+    if DEVICE_LATITUDE is not None and DEVICE_LONGITUDE is not None:
+        return DEVICE_LATITUDE, DEVICE_LONGITUDE, DEVICE_LOCATION_NAME or f"{DEVICE_LATITUDE}, {DEVICE_LONGITUDE}"
+    
+    # 1. Try to fetch the latest high-accuracy location reported by the browser/PC to the backend
+    try:
+        res = requests.get(f"{BASE_URL}/api/v1/pc-location", timeout=5)
+        if res.status_code == 200:
+            data = res.json().get("data")
+            if data and data.get("latitude") and data.get("longitude"):
+                lat = data.get("latitude")
+                lon = data.get("longitude")
+                addr = data.get("address") or "Device Location"
+                return lat, lon, addr
+    except Exception as e:
+        logging.warning(f"Failed to fetch high-accuracy location from backend: {e}")
+    
+    # 2. Secondary fallback: client-side IP-based approximation
+    try:
+        res = requests.get("http://ip-api.com/json/?fields=lat,lon,city,country", timeout=5)
+        if res.status_code == 200:
+            data = res.json()
+            lat = data.get("lat")
+            lon = data.get("lon")
+            city = data.get("city", "")
+            country = data.get("country", "")
+            loc_name = f"{city}, {country}".strip(", ") or "CCTV Camera"
+            return lat, lon, loc_name
+    except Exception as e:
+        logging.warning(f"Client geolocation failed: {e}")
+        
+    return None, None, None
+
 def frame_to_base64(frame):
     _, buffer = cv2.imencode(
         ".jpg",
@@ -243,6 +282,8 @@ def send_detection(
     if not person_id:
         return
 
+    lat, lon, loc_name = get_device_location()
+
     data = {
         "type": "Person",
         "registrationId": str(person_id),
@@ -264,6 +305,12 @@ def send_detection(
             frame
         )
     }
+
+    if lat is not None and lon is not None:
+        data["latitude"] = lat
+        data["longitude"] = lon
+        if loc_name:
+            data["location"] = loc_name
 
     try:
 
