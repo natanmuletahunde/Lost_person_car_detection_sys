@@ -358,10 +358,14 @@ export default function DataManagementPage() {
             styles={{ input: { backgroundColor: 'transparent', height: '30px', width: '200px' } }}
           />
           <Tooltip label="Settings">
-            <ActionIcon variant="subtle" color="gray"><IconSettings size={20} /></ActionIcon>
+            <Link href="/admin/settings" passHref style={{ textDecoration: 'none' }}>
+              <ActionIcon variant="subtle" color="blue"><IconSettings size={20} /></ActionIcon>
+            </Link>
           </Tooltip>
           <Tooltip label="Notifications">
-            <ActionIcon variant="subtle" color="red"><IconBell size={20} /></ActionIcon>
+            <Link href="/admin/notification" passHref style={{ textDecoration: 'none' }}>
+              <ActionIcon variant="subtle" color="red"><IconBell size={20} /></ActionIcon>
+            </Link>
           </Tooltip>
           <Tooltip label="Refresh data">
             <ActionIcon variant="subtle" color="blue" onClick={fetchData}>
