@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { useMediaQuery } from "@mantine/hooks";
 
 // Import components
-import HowItWorksHeader from "../../components/how-it-works/HowItWorksHeader";
+import DashboardHeader from "../dashboard/DashboardHeader";
 import HowItWorksPageHeader from "../../components/how-it-works/HowItWorksPageHeader";
 import StatsCards from "../../components/how-it-works/StatsCards";
 import StepGuide from "../../components/how-it-works/StepGuide";
@@ -45,7 +45,7 @@ export default function HowItWorksPage() {
 
   return (
     <Box bg={getBg(colorScheme, "white", "#1A1B1E")} style={{ minHeight: "100vh" }}>
-      <HowItWorksHeader user={user} isMobile={isMobile} colorScheme={colorScheme} />
+      <DashboardHeader />
       
       <Container size="xl" py={40}>
         <HowItWorksPageHeader />

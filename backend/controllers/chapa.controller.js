@@ -2,7 +2,7 @@ const Subscription = require("../models/Subscription");
 const User = require("../models/User");
 const ApiResponse = require("../utils/ApiResponse");
 
-const CHAPA_SECRET_KEY = "CHASECK_TEST-7KwsGvJTVVMjwB2xGMVh8ut0KfISi6MD";
+const CHAPA_SECRET_KEY = "CHASECK_TEST-mbwvpX0Oj2qbShCaTJZEEXqC1T6pRcFk";
 const CHAPA_INIT_URL = "https://api.chapa.co/v1/transaction/initialize";
 const CHAPA_VERIFY_URL = "https://api.chapa.co/v1/transaction/verify/";
 
@@ -47,7 +47,7 @@ exports.initializePayment = async (req, res) => {
     const tx_ref = `tx_${plan}_${Date.now()}_${userId}`;
 
     const callback_url = `http://localhost:3001/api/v1/chapa/callback`;
-    const return_url = `http://localhost:3000/user/subscribe/payment?plan=${plan}&status=success&tx_ref=${tx_ref}`;
+    const return_url = `http://localhost:3000/user/register?payment=success&tx_ref=${tx_ref}`;
 
     const payload = {
       amount: selectedPlan.price.toString(),
@@ -55,15 +55,18 @@ exports.initializePayment = async (req, res) => {
       email,
       first_name: firstName || "User",
       last_name: lastName || "User",
-      phone_number: phone || "",
       tx_ref,
       callback_url,
       return_url,
       customization: {
-        title: "Lost Person & Car Detection Subscription",
+        title: "LPC Premium",
         description: `${selectedPlan.name} Plan Subscription`,
       },
     };
+
+    if (phone && phone.trim() !== "") {
+      payload.phone_number = phone.trim();
+    }
 
     const response = await fetchWithTimeout(CHAPA_INIT_URL, {
       method: "POST",
@@ -81,7 +84,8 @@ exports.initializePayment = async (req, res) => {
       });
     }
 
-    return ApiResponse.error(res, "Failed to initialize payment", 400);
+    console.error("Chapa API responded with failure:", response.data);
+    return ApiResponse.error(res, response.data?.message || "Failed to initialize payment", 400);
   } catch (error) {
     console.error("Chapa init error:", error.message);
     return ApiResponse.error(res, "Payment initialization failed", 500);
@@ -144,7 +148,7 @@ exports.handleCallback = async (req, res) => {
     const { tx_ref } = req.query;
 
     if (!tx_ref) {
-      return res.redirect(`http://localhost:3000/user/subscribe/payment?status=failed`);
+      return res.redirect(`http://localhost:3000/user/subscribe?payment=failed`);
     }
 
     // Verify payment with Chapa
@@ -186,12 +190,12 @@ exports.handleCallback = async (req, res) => {
         await User.findByIdAndUpdate(user._id, { hasPaidSubscription: true });
       }
 
-      res.redirect(`http://localhost:3000/user/subscribe/payment?status=success&tx_ref=${tx_ref}`);
+      res.redirect(`http://localhost:3000/user/register?payment=success&tx_ref=${tx_ref}`);
     } else {
-      res.redirect(`http://localhost:3000/user/subscribe/payment?status=failed&tx_ref=${tx_ref}`);
+      res.redirect(`http://localhost:3000/user/subscribe?payment=failed&tx_ref=${tx_ref}`);
     }
   } catch (error) {
     console.error("Chapa callback error:", error.message);
-    res.redirect(`http://localhost:3000/user/subscribe/payment?status=failed`);
+    res.redirect(`http://localhost:3000/user/subscribe?payment=failed`);
   }
 };

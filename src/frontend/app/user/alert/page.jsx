@@ -60,6 +60,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRef, useState, useEffect } from "react";
 import { apiClient } from "../../lib/apiClient";
+import DashboardHeader from "../dashboard/DashboardHeader";
 
 // API Endpoints
 const API_BASE_URL =
@@ -129,8 +130,8 @@ export default function AlertPage() {
     localStorage.removeItem("currentUser");
     localStorage.removeItem("isAuthenticated");
 
-    // Redirect to login page
-    router.push("/authentication/login");
+    // Redirect to home page
+    router.push("/");
   };
   
   useEffect(() => {
@@ -578,104 +579,8 @@ export default function AlertPage() {
 
   return (
     <Box bg={mainBg} style={{ minHeight: "100vh", position: "relative" }}>
-      {/* Header */}
-      <Box
-        bg={headerBg}
-        py="sm"
-        style={{
-          borderBottom: `1px solid ${borderColor}`,
-          position: "sticky",
-          top: 0,
-          zIndex: 100,
-        }}
-      >
-        <Container size="xl">
-          <Group justify="space-between">
-            <Image
-              src="/logo.jpg"
-              alt="Logo"
-              width={0}
-              height={50}
-              sizes="100vw"
-              style={{ width: "auto", height: "50px", borderRadius: "8px" }}
-            />
-
-            <TextInput
-              placeholder="Search alerts by brand, code, location..."
-              leftSection={<IconSearch size={16} />}
-              style={{ width: "40%" }}
-              radius="xl"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-
-            <Group gap="lg">
-              <ActionIcon
-                variant="transparent"
-                color="gray"
-                size="lg"
-                component={Link}
-                href="/"
-              >
-                <IconHome size={28} />
-              </ActionIcon>
-
-              <Menu
-                shadow="md"
-                width={320}
-                radius="md"
-                transitionProps={{ transition: "pop-top-right" }}
-              >
-                <Menu.Target>
-                  <UnstyledButton>
-                    <Group gap="sm">
-                      <Box ta="right" visibleFrom="xs">
-                        <Text fw={800} size="md">
-                          {username}
-                        </Text>
-                        <Text size="xs" c="dimmed">
-                          Personal account
-                        </Text>
-                      </Box>
-                      <Avatar
-                        src={null}
-                        alt="User"
-                        color="blue"
-                        size="md"
-                        radius="xl"
-                      />
-                    </Group>
-                  </UnstyledButton>
-                </Menu.Target>
-                <Menu.Dropdown p="md">
-                  <Group justify="space-between" mb="xs">
-                    <Text size="sm" fw={700}>
-                      Personal account
-                    </Text>
-                    <ActionIcon
-                      variant="subtle"
-                      size="sm"
-                      color="gray"
-                      onClick={handleLogout} // Add this
-                    >
-                      <IconLogout size={14} />
-                    </ActionIcon>
-                  </Group>
-                  <Stack gap={4}>{/* ... menu items ... */}</Stack>
-                  <Menu.Divider />
-                  <Menu.Item
-                    color="red"
-                    leftSection={<IconLogout size={20} />}
-                    onClick={handleLogout} // Add this
-                  >
-                    Logout
-                  </Menu.Item>
-                </Menu.Dropdown>
-              </Menu>
-            </Group>
-          </Group>
-        </Container>
-      </Box>
+      {/* ── Reusable Unified Header ── */}
+      <DashboardHeader />
 
       {/* Delete Confirmation Modal */}
       <Modal

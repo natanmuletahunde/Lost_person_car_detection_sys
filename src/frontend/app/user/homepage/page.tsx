@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 // Import all the composed Home components
-import HomeHeader from "../../components/home/HomeHeader";
 import HomeHero from "../../components/home/HomeHero";
 import HomeAbout from "../../components/home/HomeAbout";
 import HomeFeatures from "../../components/home/HomeFeatures";
@@ -54,8 +53,6 @@ export default function UserHomepage() {
     <Box style={{ overflowX: "hidden", background: getBg("#f8fafc", "#0f172a") }}>
       <DashboardHeader
         user={user}
-        notifications={[]}
-        unreadCount={0}
         colorScheme={colorScheme as any}
         toggleColorScheme={toggleColorScheme}
         getUserInitials={getUserInitials}

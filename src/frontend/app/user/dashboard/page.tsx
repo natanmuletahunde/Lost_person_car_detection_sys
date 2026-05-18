@@ -225,7 +225,7 @@ export default function Dashboard() {
     localStorage.removeItem("token");
     localStorage.removeItem("refreshToken");
     setUser(null);
-    router.push("/authentication/login");
+    router.push("/");
   };
 
   // Show loader while checking authentication

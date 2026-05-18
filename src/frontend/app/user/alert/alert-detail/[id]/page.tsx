@@ -62,6 +62,7 @@ import Link from "next/link";
 import Image from "next/image";
 import MainFooter from "../../../../components/MainFooter";
 import { apiClient } from "../../../../lib/apiClient";
+import DashboardHeader from "../../../dashboard/DashboardHeader";
 import 'leaflet/dist/leaflet.css';
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
@@ -221,7 +222,8 @@ export default function AlertDetailPage() {
   const handleLogout = () => {
     createActionLog('logout', { fromPage: 'alert_detail' });
     localStorage.removeItem('currentUser');
-    router.push('/authentication/login');
+    localStorage.removeItem('isAuthenticated');
+    router.push('/');
   };
 
   useEffect(() => {
@@ -499,122 +501,8 @@ export default function AlertDetailPage() {
         flexDirection: "column",
       }}
     >
-      {/* Header */}
-      <Box
-        bg={headerBg}
-        py="sm"
-        style={{
-          borderBottom: `1px solid ${borderColor}`,
-          position: "sticky",
-          top: 0,
-          zIndex: 100,
-        }}
-      >
-        <Container fluid px="md">
-          <Group justify="space-between">
-            <Image
-              src="/logo.jpg"
-              alt="Logo"
-              width={0}
-              height={50}
-              sizes="100vw"
-              style={{ width: "auto", height: "50px", borderRadius: "8px" }}
-            />
-            <TextInput
-              placeholder="Search alerts..."
-              leftSection={<IconSearch size={16} />}
-              style={{ width: "40%", minWidth: 200 }}
-              radius="xl"
-              visibleFrom="sm"
-            />
-            <Group gap="lg">
-              <ActionIcon
-                variant="transparent"
-                color="gray"
-                size="lg"
-                component={Link}
-                href="/"
-              >
-                <IconHome size={28} />
-              </ActionIcon>
-              <Menu
-                shadow="md"
-                width={320}
-                radius="md"
-                transitionProps={{ transition: "pop-top-right" }}
-              >
-                <Menu.Target>
-                  <UnstyledButton>
-                    <Group gap="sm">
-                      <Box ta="right" visibleFrom="xs">
-                        <Text fw={800} size="md">
-                          {currentUser ? `${currentUser.firstName}` : "User"}
-                        </Text>
-                        <Text size="xs" c="dimmed">
-                          Personal account
-                        </Text>
-                      </Box>
-                      <Avatar
-                        src={null}
-                        alt="User"
-                        color="blue"
-                        size="md"
-                        radius="xl"
-                      />
-                    </Group>
-                  </UnstyledButton>
-                </Menu.Target>
-                <Menu.Dropdown p="md">
-                  <Group justify="space-between" mb="xs">
-                    <Text size="sm" fw={700}>
-                      Personal account
-                    </Text>
-                    <ActionIcon variant="subtle" size="sm" color="gray">
-                      <IconLogout size={14} />
-                    </ActionIcon>
-                  </Group>
-                  <Stack gap={4}>
-                    <Menu.Item leftSection={<IconUser size={20} />}>
-                      Person
-                    </Menu.Item>
-                    <Menu.Item
-                      leftSection={<IconBell size={20} />}
-                      onClick={() => router.push("/user/alert")}
-                    >
-                      Notification
-                    </Menu.Item>
-                    <Menu.Item leftSection={<IconShieldCheck size={20} />}>
-                      Privacy and Policy
-                    </Menu.Item>
-                    <Menu.Item leftSection={<IconBell size={20} />}
-                    component={Link}
-                    href="/user/alert">
-                      Alerts
-                    </Menu.Item>
-                    <Menu.Item leftSection={<IconHistory size={20} />}>
-                      History
-                    </Menu.Item>
-                    <Menu.Item leftSection={<IconSettings size={20} />}
-                    component={Link}
-                    href="/user/account_setting">
-                      Settings
-                    </Menu.Item>
-                  </Stack>
-                  <Menu.Divider />
-                  {/* ========== CHANGED to custom handler ========== */}
-                  <Menu.Item
-                    color="red"
-                    leftSection={<IconLogout size={20} />}
-                    onClick={handleLogout}
-                  >
-                    Logout
-                  </Menu.Item>
-                </Menu.Dropdown>
-              </Menu>
-            </Group>
-          </Group>
-        </Container>
-      </Box>
+      {/* ── Reusable Unified Header ── */}
+      <DashboardHeader />
 
       {/* Back to Alerts Section */}
       <Box style={{ padding: "24px 16px 16px 16px" }}>

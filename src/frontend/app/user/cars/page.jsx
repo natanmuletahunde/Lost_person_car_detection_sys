@@ -139,51 +139,47 @@ export default function CarsPage() {
                   <Text size="sm" c="dimmed" lineClamp={1}>
                     {vehicle.submodel}
                   </Text>
-                  {vehicle.submodel && (
-                    <Text size="sm" c="dimmed" lineClamp={1}>
-                      {vehicle.submodel}
-                    </Text>
-                  )}
-                  <Group gap={4} mt={8}>
-                    <IconMapPin size={16} />
-                    <Text size="sm" lineClamp={1}>
-                      {vehicle.location || "Location unknown"}
-                    </Text>
-                  </Group>
-                  <Group gap="xs" mt={8} justify="space-between">
-                    <Badge size="sm" color="blue" variant="light">
-                      {vehicle.color || "N/A"}
-                    </Badge>
-                    <Text size="sm" fw={600} style={{ fontFamily: "monospace" }}>
-                      {vehicle.plateNumber || "No plate"}
-                    </Text>
-                  </Group>
-                  <Badge size="sm" color="red" variant="filled" fullWidth mt={10}>
-                    ACTIVE
+                )}
+                <Group gap={4} mt={8}>
+                  <IconMapPin size={16} />
+                  <Text size="sm" lineClamp={1}>
+                    {vehicle.location || "Location unknown"}
+                  </Text>
+                </Group>
+                <Group gap="xs" mt={8} justify="space-between">
+                  <Badge size="sm" color="blue" variant="light">
+                    {vehicle.color || "N/A"}
                   </Badge>
-                  <Button
-                    component={Link}
-                    href={`/user/report-sighting?type=Vehicle&caseId=${
-                      vehicle.caseId || vehicleId
-                    }&plateNumber=${encodeURIComponent(
-                      vehicle.plateNumber || ""
-                    )}&brand=${encodeURIComponent(
-                      vehicle.brand
-                    )}&model=${encodeURIComponent(
-                      vehicle.model
-                    )}&location=${encodeURIComponent(vehicle.location || "")}`}
-                    size="sm"
-                    variant="light"
-                    color="blue"
-                    fullWidth
-                    mt="md"
-                    leftSection={<IconMap size={16} />}
-                  >
-                    Report Sighting
-                  </Button>
-                </Box>
-              </Card>
-            );
+                  <Text size="sm" fw={600} style={{ fontFamily: "monospace" }}>
+                    {vehicle.plateNumber || "No plate"}
+                  </Text>
+                </Group>
+                <Badge size="sm" color="red" variant="filled" fullWidth mt={10}>
+                  ACTIVE
+                </Badge>
+                <Button
+                  component={Link}
+                  href={`/user/report-sighting?type=Vehicle&caseId=${
+                    vehicle.caseId || vehicle._id || vehicle.id
+                  }&plateNumber=${encodeURIComponent(
+                    vehicle.plateNumber || ""
+                  )}&brand=${encodeURIComponent(
+                    vehicle.brand
+                  )}&model=${encodeURIComponent(
+                    vehicle.model
+                  )}&location=${encodeURIComponent(vehicle.location || "")}`}
+                  size="sm"
+                  variant="light"
+                  color="blue"
+                  fullWidth
+                  mt="md"
+                  leftSection={<IconMap size={16} />}
+                >
+                  Report Sighting
+                </Button>
+              </Box>
+            </Card>
+          );
           })}
         </SimpleGrid>
       )}

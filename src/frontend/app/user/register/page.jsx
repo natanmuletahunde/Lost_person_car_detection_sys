@@ -116,7 +116,36 @@ export default function UnifiedRegisterPage() {
           router.push('/login');
           return;
         }
-        const parsedUser = JSON.parse(userData);
+        let parsedUser = JSON.parse(userData);
+        
+        // Auto-refresh subscription status if coming from successful payment
+        const urlParams = new URLSearchParams(window.location.search);
+        const paymentStatus = urlParams.get('payment');
+        if (paymentStatus === 'success') {
+          try {
+            const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+            const freshUserRes = await fetch(`${API_BASE_URL}/auth/me`, {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            });
+            const freshUserData = await freshUserRes.json();
+            if (freshUserRes.ok && freshUserData?.data) {
+              localStorage.setItem('currentUser', JSON.stringify(freshUserData.data));
+              parsedUser = freshUserData.data;
+              notifications.show({
+                title: '🎉 Premium Activated!',
+                message: 'Your payment was successfully processed. Welcome to Premium!',
+                color: 'teal',
+                icon: <IconCheck size={20} />
+              });
+              // Clear URL search params without triggering reload
+              window.history.replaceState({}, document.title, window.location.pathname);
+            }
+          } catch (e) {
+            console.error("Failed to fetch fresh user data:", e);
+          }
+        }
         
         // Debug logs to help trace the issue
         console.log("Subscription Check - current user:", parsedUser);
@@ -135,9 +164,13 @@ export default function UnifiedRegisterPage() {
             color: 'yellow', 
             icon: <IconAlertCircle size={20} /> 
           });
-          // Hard redirect to guarantee navigation
-          window.location.href = '/user/subscribe';
-          setLoading(false);
+          
+          // Determine origin to pass to subscribe page
+          const ref = typeof document !== 'undefined' ? document.referrer || "" : "";
+          const fromParam = ref.includes("dashboard") ? "dashboard" : "home";
+          
+          // Redirect immediately without exposing register form
+          router.replace(`/user/subscribe?from=${fromParam}`);
           return;
         }
 
@@ -482,7 +515,7 @@ export default function UnifiedRegisterPage() {
               <Flex align="center" gap="md"><Box style={{ display: 'inline-block', height: '40px', width: 'auto', overflow: 'hidden' }}><Image src="/logo.jpg" alt="Logo" width={2040} height={952} style={{ height: '100%', width: 'auto' }} /></Box><Box><Text size={isMobile ? "lg" : "xl"} fw={900} style={{ color: PRIMARY_COLOR, letterSpacing: '-0.5px' }}>Report</Text><Text size="xs" c={PRIMARY_DARK} fw={600} style={{ letterSpacing: '1px' }}>Missing Persons & Vehicles Registry</Text></Box></Flex>
             </Link>
             <Flex align="center" gap="lg">
-              <Flex gap="xs"><Tooltip label="Dashboard" position="bottom"><ActionIcon size="lg" radius="md" variant="light" color="blue" onClick={() => router.push('/')} style={{ border: `1px solid ${PRIMARY_COLOR}30` }}><IconDashboard size={20} /></ActionIcon></Tooltip><Tooltip label="Home" position="bottom"><ActionIcon size="lg" radius="md" variant="light" color="blue" onClick={() => router.push('/')} style={{ border: `1px solid ${PRIMARY_COLOR}30` }}><IconHome size={20} /></ActionIcon></Tooltip></Flex>
+              <Flex gap="xs"><Tooltip label="Dashboard" position="bottom"><ActionIcon size="lg" radius="md" variant="light" color="blue" onClick={() => router.push('/user/dashboard')} style={{ border: `1px solid ${PRIMARY_COLOR}30` }}><IconDashboard size={20} /></ActionIcon></Tooltip><Tooltip label="Home" position="bottom"><ActionIcon size="lg" radius="md" variant="light" color="blue" onClick={() => router.push('/')} style={{ border: `1px solid ${PRIMARY_COLOR}30` }}><IconHome size={20} /></ActionIcon></Tooltip></Flex>
               <Flex align="center" gap="sm" style={{ padding: '8px 16px', background: getBg(colorScheme, '#f0f5ff', theme.colors.dark[6]), borderRadius: '30px', cursor: 'pointer', transition: 'all 0.3s ease' }} onClick={() => setShowContactModal(true)}>
                 <Avatar size="sm" radius="xl" src={currentUser?.avatar} style={{ background: PRIMARY_GRADIENT, border: `2px solid white` }}>{currentUser?.firstName?.[0]}{currentUser?.lastName?.[0]}</Avatar>
                 <Box><Text size="sm" fw={600} style={{ color: PRIMARY_DARK }}>{currentUser?.firstName} {currentUser?.lastName}</Text><Text size="xs" c="dimmed">Report #{currentUser?.registrations ? currentUser.registrations + 1 : 1}</Text></Box>

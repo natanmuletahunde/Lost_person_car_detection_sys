@@ -1,4 +1,4 @@
-import UserSettingsPage from '@/components/settings/UserSettingsPage';
+import UserSettingsPage from '../../components/settings/UserSettingsPage';
 
 export default function SettingsPage() {
   return <UserSettingsPage />;

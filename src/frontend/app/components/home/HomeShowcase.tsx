@@ -22,7 +22,14 @@ function getImageUrl(item: any) {
 export default function HomeShowcase() {
   const { colorScheme } = useMantineColorScheme();
   const getBg = (light: string, dark: string) => (colorScheme === "dark" ? dark : light);
-  
+  const getJustify = (items: any[]) => {
+    if (items.length === 1) return "center";
+    if (items.length > 1 && items.length <= 3) {
+      return { base: "flex-start", sm: "center" };
+    }
+    return "flex-start";
+  };
+
   const [missingPersons, setMissingPersons] = useState([]);
   const [missingVehicles, setMissingVehicles] = useState([]);
   const [dataLoading, setDataLoading] = useState(true);
@@ -80,7 +87,7 @@ export default function HomeShowcase() {
             </Alert>
           ) : (
             <ScrollArea w="100%" pb="xl">
-              <Group wrap="nowrap" gap="lg">
+              <Group wrap="nowrap" gap="lg" justify={getJustify(missingPersons)}>
                 {missingPersons.slice(0, 6).map((person: any) => {
                   const personId = person._id || person.id;
                   const imageUrl = getImageUrl(person);
@@ -129,7 +136,7 @@ export default function HomeShowcase() {
             </Alert>
           ) : (
             <ScrollArea w="100%" pb="xl">
-              <Group wrap="nowrap" gap="lg">
+              <Group wrap="nowrap" gap="lg" justify={getJustify(missingVehicles)}>
                 {missingVehicles.slice(0, 6).map((vehicle: any) => {
                   const vehicleId = vehicle._id || vehicle.id;
                   const imageUrl = getImageUrl(vehicle);

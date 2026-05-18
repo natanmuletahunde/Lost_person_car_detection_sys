@@ -93,7 +93,7 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import MainFooter from '../../../components/MainFooter';
+import MainFooter from '../../components/MainFooter';
 import { useMediaQuery } from '@mantine/hooks';
 
 // API URLs

@@ -9,10 +9,10 @@ import {
   Stack,
   useMantineColorScheme,
 } from "@mantine/core";
-import { IconArrowRight, IconShieldCheck } from "@tabler/icons-react";
+import { IconArrowRight, IconChevronDown } from "@tabler/icons-react";
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { useMediaQuery } from "@mantine/hooks";
 
 export default function HomeHero({
@@ -24,6 +24,9 @@ export default function HomeHero({
   const { colorScheme } = useMantineColorScheme();
   const isDark = colorScheme === "dark";
 
+  const { scrollY } = useScroll();
+  const parallaxY = useTransform(scrollY, [0, 300], [0, 60]);
+
   return (
     <Box
       style={{
@@ -31,35 +34,73 @@ export default function HomeHero({
         width: "100vw",
         overflow: "hidden",
         position: "relative",
-        // Stunning premium deep space gradient that transitions from velvety dark navy on the left to rich sapphire and glowing emerald-teal on the right
         background: isDark
-          ? "linear-gradient(135deg, #020617 0%, #090d16 35%, #1e1b4b 70%, #064e3b 100%)"
-          : "linear-gradient(135deg, #030712 0%, #0c1a30 35%, #1e3a8a 70%, #0d9488 100%)",
+          ? "linear-gradient(135deg, #020617 0%, #0b1220 50%, #0f172a 100%)"
+          : "linear-gradient(135deg, #0f172a 0%, #1e3a8a 60%, #0ea5e9 100%)",
       }}
     >
+      {/* RIGHT SIDE IMAGE + PARTICLES */}
       {!isMobile && (
         <Box
           style={{
             position: "absolute",
-            top: "0",
-            bottom: "0",
-            right: "0%",
-            width: "65%", // Larger width to allow full illustration scaling
-            height: "100%", // Set to 100% to completely cover the top gap
+            top: 0,
+            right: 0,
+            width: "60%",
+            height: "100%",
             zIndex: 1,
+            overflow: "visible",
           }}
         >
-          <Image
-            src="/heropic.png"
-            alt="Finding what's lost"
-            fill
-            style={{ objectFit: "contain", objectPosition: "right bottom" }}
-            priority
-          />
+          {/* HERO IMAGE */}
+          <motion.div
+            style={{
+              y: parallaxY,
+              position: "relative",
+              width: "100%",
+              height: "100%",
+            }}
+          >
+            <Image
+              src="/heropic.png"
+              alt="Hero"
+              fill
+              priority
+              style={{
+                objectFit: "contain",
+                objectPosition: "right bottom",
+              }}
+            />
+          </motion.div>
+
+          {/* FLOATING PARTICLES */}
+          {[...Array(18)].map((_, i) => (
+            <motion.div
+              key={i}
+              style={{
+                position: "absolute",
+                width: 6 + (i % 3),
+                height: 6 + (i % 3),
+                borderRadius: "50%",
+                background: "rgba(255,255,255,0.35)",
+                top: `${Math.random() * 100}%`,
+                right: `${Math.random() * 100}%`,
+              }}
+              animate={{
+                y: [0, -20, 0],
+                opacity: [0.2, 0.6, 0.2],
+              }}
+              transition={{
+                duration: 4 + (i % 3),
+                repeat: Infinity,
+                delay: i * 0.2,
+              }}
+            />
+          ))}
         </Box>
       )}
 
-      {/* Content */}
+      {/* CONTENT */}
       <Box
         style={{
           position: "relative",
@@ -68,180 +109,130 @@ export default function HomeHero({
           display: "flex",
           alignItems: "center",
           paddingLeft: isMobile ? 24 : "6vw",
-          paddingRight: isMobile ? 24 : "42%",
+          paddingRight: isMobile ? 24 : "40%",
           paddingTop: isMobile ? 100 : 0,
-          paddingBottom: isMobile ? 80 : 0,
         }}
       >
         <Stack gap="xl">
+          {/* ANIMATED TEXT BLOCK */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8 }}
+            transition={{ duration: 0.7 }}
           >
-            <BadgeSection />
+            {/* BADGE */}
+            <Box
+              style={{
+                display: "inline-block",
+                padding: "8px 14px",
+                borderRadius: 20,
+                background: isDark ? "#111827" : "#e2e8f0",
+                border: isDark ? "1px solid #1f2937" : "1px solid #cbd5e1",
+                fontSize: 12,
+                fontWeight: 700,
+                letterSpacing: 1,
+                textTransform: "uppercase",
+              }}
+            >
+              AI Powered Recovery Platform
+            </Box>
 
-            {/* Main Heading */}
+            {/* TITLE */}
             <Title
               order={1}
               size={isMobile ? 40 : 68}
               fw={900}
               c="white"
               mt="xl"
-              style={{
-                lineHeight: 1.05,
-                letterSpacing: "-0.05em",
-                maxWidth: 700,
-              }}
+              style={{ lineHeight: 1.05 }}
             >
               If you{" "}
-              <Text
-                component="span"
-                variant="gradient"
-                gradient={{ from: "blue.3", to: "cyan.3" }}
-                inherit
-              >
+              <Text component="span" c="cyan.3" inherit>
                 lost it
               </Text>
-              ,
-              <br />
+              ,<br />
               we will{" "}
-              <Text
-                component="span"
-                variant="gradient"
-                gradient={{ from: "cyan.3", to: "teal.3" }}
-                inherit
-              >
+              <Text component="span" c="teal.3" inherit>
                 find it
               </Text>
             </Title>
 
-            {/* Subtitle */}
-            <Title
-              order={2}
-              size={isMobile ? 20 : 30}
-              fw={700}
-              c="blue.1"
-              mt="lg"
-              style={{
-                opacity: 0.95,
-              }}
-            >
-              Join thousands who recovered their lost belongings
-            </Title>
-
-            {/* Description */}
-            <Text
-              size={isMobile ? "md" : "xl"}
-              c="gray.3"
-              mt="md"
-              mb={42}
-              fw={500}
-              maw={560}
-              style={{
-                lineHeight: 1.7,
-              }}
-            >
-              Returning lost items is now faster and smarter with
-              Flegas™ Black Lions™ AI-powered cloud platform — accessible
-              from any device, anytime.
+            {/* SUBTITLE */}
+            <Text size="xl" c="gray.3" mt="md" maw={600}>
+              Smart AI-powered system that helps recover lost items faster using
+              real-time alerts and tracking.
             </Text>
 
-            {/* Buttons */}
-            <Group
-              gap="md"
-              wrap={isMobile ? "wrap" : "nowrap"}
-            >
-              <Button
-                component={Link}
-                href={
-                  isAuthenticated
-                    ? "/user/register"
-                    : "/authentication/signup"
-                }
-                size={isMobile ? "lg" : "xl"}
-                radius="xl"
-                px={40}
-                h={58}
-                bg="blue.6"
-                rightSection={<IconArrowRight size={22} />}
-                fullWidth={isMobile}
-                style={{
-                  boxShadow:
-                    "0 20px 45px rgba(37, 99, 235, 0.35)",
-                  fontSize: 18,
-                  fontWeight: 700,
-                  transition: "all 0.3s ease",
-                }}
+            {/* BUTTONS */}
+            <Group mt={40} gap="md" wrap={isMobile ? "wrap" : "nowrap"}>
+              {/* PRIMARY BUTTON */}
+              <motion.div
+                whileHover={{ scale: 1.05, y: -3 }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ type: "spring", stiffness: 300 }}
               >
-                {isAuthenticated
-                  ? "Register Case"
-                  : "Get Started Free"}
-              </Button>
+                <Button
+                  component={Link}
+                  href={
+                    isAuthenticated
+                      ? "/user/register"
+                      : "/authentication/signup"
+                  }
+                  size="lg"
+                  radius="xl"
+                  rightSection={<IconArrowRight size={18} />}
+                  style={{
+                    background: "#2563eb",
+                    fontWeight: 700,
+                  }}
+                >
+                  {isAuthenticated ? "Register Case" : "Get Started"}
+                </Button>
+              </motion.div>
 
-              <Button
-                component={Link}
-                href="/user/how-it-works"
-                size={isMobile ? "lg" : "xl"}
-                variant="outline"
-                color="white"
-                radius="xl"
-                px={40}
-                h={58}
-                fullWidth={isMobile}
-                style={{
-                  borderWidth: 2,
-                  fontSize: 18,
-                  fontWeight: 700,
-                  backdropFilter: "blur(12px)",
-                  background:
-                    "rgba(255,255,255,0.08)",
-                  borderColor:
-                    "rgba(255,255,255,0.25)",
-                  transition: "all 0.3s ease",
-                }}
+              {/* SECONDARY BUTTON */}
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ type: "spring", stiffness: 300 }}
               >
-                How it works
-              </Button>
+                <Button
+                  component={Link}
+                  href="/user/how-it-works"
+                  size="lg"
+                  radius="xl"
+                  variant="outline"
+                  style={{
+                    border: "2px solid white",
+                    color: "white",
+                    fontWeight: 700,
+                  }}
+                >
+                  How it works
+                </Button>
+              </motion.div>
             </Group>
           </motion.div>
         </Stack>
       </Box>
-    </Box>
-  );
-}
 
-function BadgeSection() {
-  return (
-    <Box
-      style={{
-        display: "inline-block",
-        background: "rgba(255,255,255,0.10)",
-        backdropFilter: "blur(14px)",
-        padding: "10px 18px",
-        borderRadius: 100,
-        border: "1px solid rgba(255,255,255,0.15)",
-        boxShadow:
-          "0 8px 25px rgba(0,0,0,0.15)",
-      }}
-    >
-      <Group gap={10}>
-        <IconShieldCheck
-          size={18}
-          color="#4dabf7"
-        />
-        <Text
-          size="xs"
-          fw={800}
-          c="blue.1"
+      {/* SCROLL INDICATOR */}
+      {!isMobile && (
+        <motion.div
           style={{
-            letterSpacing: 1.5,
-            textTransform: "uppercase",
+            position: "absolute",
+            bottom: 20,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 5,
+            color: "white",
           }}
+          animate={{ y: [0, 10, 0] }}
+          transition={{ repeat: Infinity, duration: 1.5 }}
         >
-          AI-Powered Recovery Platform
-        </Text>
-      </Group>
+          <IconChevronDown size={28} />
+        </motion.div>
+      )}
     </Box>
   );
 }

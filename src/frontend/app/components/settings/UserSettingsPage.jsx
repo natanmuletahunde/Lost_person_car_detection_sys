@@ -49,6 +49,7 @@ import { PrivacySection } from "./SettingsSections/PrivacySection";
 import { useSettingsForm } from "./hooks/useSettingsForm";
 import { useUnsavedChanges } from "./hooks/useUnsavedChanges";
 import { validateSettings } from "./utils/validators";
+import DashboardHeader from "../../user/dashboard/DashboardHeader";
 
 const getBg = (colorScheme, light, dark) =>
   colorScheme === "dark" ? dark : light;
@@ -99,7 +100,7 @@ export default function UserSettingsPage() {
   const handleLogout = () => {
     localStorage.removeItem("currentUser");
     localStorage.removeItem("isAuthenticated");
-    router.push("/authentication/login");
+    router.push("/");
   };
 
   const handleSubmit = async (event) => {
@@ -164,77 +165,8 @@ export default function UserSettingsPage() {
         }
       ` }} />
 
-      {/* ── Beautiful Consistent Header ── */}
-      <Box
-        bg={headerBg}
-        py="xs"
-        style={{
-          borderBottom: `1px solid ${borderColor}`,
-          zIndex: 100,
-          backdropFilter: "blur(14px)",
-          boxShadow: isDark ? "0 4px 20px rgba(0,0,0,0.3)" : "0 4px 20px rgba(0,0,0,0.03)",
-        }}
-      >
-        <Container size="xl">
-          <Group justify="space-between">
-            <Group gap="md">
-              <Link href="/user/dashboard">
-                <Image
-                  src="/logo.jpg"
-                  alt="Logo"
-                  width={0}
-                  height={45}
-                  sizes="100vw"
-                  style={{ width: "auto", height: "45px", borderRadius: "8px" }}
-                />
-              </Link>
-              <Divider orientation="vertical" h={25} />
-              <Group gap="xs">
-                <IconShieldLock size={20} color={theme.colors.blue[6]} />
-                <Title order={4} fw={800} style={{ letterSpacing: -0.3 }}>Settings Center</Title>
-              </Group>
-            </Group>
-
-            <Group gap="lg">
-              <ActionIcon
-                variant="subtle"
-                color="gray"
-                size="lg"
-                component={Link}
-                href="/user/dashboard"
-                title="Go to Dashboard"
-              >
-                <IconHome size={22} />
-              </ActionIcon>
-
-              <Menu shadow="lg" width={220} radius="md" transitionProps={{ transition: 'pop' }}>
-                <Menu.Target>
-                  <UnstyledButton style={{ padding: '4px 8px', borderRadius: '8px' }}>
-                    <Group gap="xs">
-                      <Avatar src={null} alt="User" color="blue" size="sm" radius="xl" fw={700} bg="linear-gradient(135deg, #4DABF7 0%, #228BE6 100%)">
-                        {username[0]?.toUpperCase()}
-                      </Avatar>
-                      <Text fw={700} size="sm" visibleFrom="xs">{username}</Text>
-                    </Group>
-                  </UnstyledButton>
-                </Menu.Target>
-                <Menu.Dropdown>
-                  <Menu.Item leftSection={<IconUser size={16} />} component={Link} href="/user/profile">
-                    My Profile
-                  </Menu.Item>
-                  <Menu.Item leftSection={<IconBell size={16} />} component={Link} href="/user/alert">
-                    System Alerts
-                  </Menu.Item>
-                  <Menu.Divider />
-                  <Menu.Item color="red" leftSection={<IconLogout size={16} />} onClick={handleLogout}>
-                    Logout
-                  </Menu.Item>
-                </Menu.Dropdown>
-              </Menu>
-            </Group>
-          </Group>
-        </Container>
-      </Box>
+      {/* ── Reusable Unified Header ── */}
+      <DashboardHeader />
 
       {/* ── Main Dashboard Settings Layout ── */}
       <Container size="xl" py={40} style={{ flex: 1 }}>

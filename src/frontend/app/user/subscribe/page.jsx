@@ -17,6 +17,8 @@ import {
   Paper,
   useMantineColorScheme,
 } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
+import { apiClient } from "../../lib/apiClient";
 import {
   IconCheck,
   IconCrown,
@@ -79,7 +81,15 @@ export default function SubscriptionPage() {
   }, []);
 
   const handleClose = () => {
-    router.back();
+    const urlParams = new URLSearchParams(window.location.search);
+    const fromParam = urlParams.get('from');
+    const referrer = typeof document !== 'undefined' ? document.referrer || "" : "";
+    
+    if (fromParam === 'dashboard' || referrer.includes('dashboard')) {
+      router.push('/user/dashboard');
+    } else {
+      router.push('/');
+    }
   };
 
   useEffect(() => {
@@ -201,15 +211,86 @@ export default function SubscriptionPage() {
     setSelectedPlan(plans[index].id);
   };
 
-  const handleUpgrade = () => {
-    const selectedPlanData = plans.find((p) => p.id === selectedPlan);
+  const handleUpgrade = async (planToUpgrade) => {
+    const selectedPlanData = planToUpgrade || plans.find((p) => p.id === selectedPlan);
 
     if (selectedPlanData.id === "enterprise") {
       router.push("/contact?plan=enterprise");
-    } else {
-      router.push(
-        `/user/subscribe/payment?plan=${selectedPlanData.id}&name=${encodeURIComponent(selectedPlanData.name)}`,
-      );
+      return;
+    }
+
+    if (!user) {
+      notifications.show({
+        title: "Login Required",
+        message: "Please login to subscribe to a premium plan.",
+        color: "yellow",
+      });
+      router.push("/login");
+      return;
+    }
+
+    notifications.show({
+      id: "chapa-init",
+      title: "Connecting to Chapa",
+      message: "Please wait while we initialize your secure payment...",
+      loading: true,
+      autoClose: false,
+      withCloseButton: false,
+    });
+
+    try {
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api/v1';
+      
+      const nameParts = (user?.name || "").trim().split(/\s+/);
+      const firstName = user?.firstName || nameParts[0] || "User";
+      const lastName = user?.lastName || nameParts.slice(1).join(" ") || "User";
+      const phone = user?.phone || "";
+
+      const response = await apiClient(`${API_BASE_URL}/chapa/initialize`, {
+        method: "POST",
+        body: JSON.stringify({
+          plan: selectedPlanData.id,
+          userId: user?._id || user?.id,
+          email: user?.email,
+          firstName,
+          lastName,
+          phone: phone.trim(),
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (response.ok && data?.success && data?.data?.checkout_url) {
+        notifications.update({
+          id: "chapa-init",
+          title: "Redirecting",
+          message: "Redirecting you to Chapa payment portal...",
+          color: "green",
+          loading: false,
+          autoClose: 2000,
+        });
+        window.location.href = data.data.checkout_url;
+      } else {
+        let msg = "Failed to initialize payment";
+        if (data?.message) {
+          if (typeof data.message === "string") {
+            msg = data.message;
+          } else if (typeof data.message === "object") {
+            msg = Object.values(data.message).flat().join(" ");
+          }
+        }
+        throw new Error(msg);
+      }
+    } catch (error) {
+      console.error("Chapa upgrade error:", error);
+      notifications.update({
+        id: "chapa-init",
+        title: "Payment Error",
+        message: error.message || "Failed to initiate payment. Please try again later.",
+        color: "red",
+        loading: false,
+        autoClose: 5000,
+      });
     }
   };
 
@@ -805,7 +886,7 @@ export default function SubscriptionPage() {
                               fullWidth
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleUpgrade();
+                                handleUpgrade(plan);
                               }}
                               disabled={
                                 plan.id === "monthly" &&
