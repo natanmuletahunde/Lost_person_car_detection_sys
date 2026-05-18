@@ -6,6 +6,7 @@ import '@mantine/dates/styles.css';
 import Providers from './providers'; // adjust the path if needed
 import DarkModeFloatingButton from './components/DarkModeFloatingButton'; // adjust path
 import LanguageFloatingButton from './components/LanguageFloatingButton';
+import AIAssistantWidget from './components/AIAssistantWidget';
 
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
@@ -45,6 +46,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             {children}
             <DarkModeFloatingButton />
             <LanguageFloatingButton />
+            <AIAssistantWidget />
           </Providers>
         </NextIntlClientProvider>
       </body>

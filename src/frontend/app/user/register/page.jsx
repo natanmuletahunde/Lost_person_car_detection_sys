@@ -116,7 +116,7 @@ export default function UnifiedRegisterPage() {
         const isAuthenticated = localStorage.getItem('isAuthenticated');
         const userData = localStorage.getItem('currentUser');
         if (!isAuthenticated || !userData || isAuthenticated !== 'true') {
-          sessionStorage.setItem('redirectUrl', window.location.pathname);
+          sessionStorage.setItem('redirectUrl', window.location.pathname + window.location.search);
           notifications.show({
             title: t("loginRequiredTitle"),
             message: t("loginRequiredMsg"),

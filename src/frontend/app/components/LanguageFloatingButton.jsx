@@ -8,11 +8,13 @@ import { notifications } from '@mantine/notifications';
 const languages = [
   { value: "en", label: "🇬🇧 English", nativeName: "English" },
   { value: "am", label: "🇪🇹 Amharic", nativeName: "አማርኛ" },
+  { value: "om", label: "🇪🇹 Oromo", nativeName: "Afaan Oromoo" },
 ];
 
 const updateMessages = {
   en: "Language updated to English",
-  am: "ቋንቋ ወደ አማርኛ ተቀይሯል"
+  am: "ቋንቋ ወደ አማርኛ ተቀይሯል",
+  om: "Afaan Oromootiin haaromfameera"
 };
 
 export default function LanguageFloatingButton() {

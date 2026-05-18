@@ -8,11 +8,8 @@ export const GRADIENT_INFO = "linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%)"
 // Options for selects
 export const languages = [
   { value: "en", label: "🇬🇧 English" },
-  { value: "es", label: "🇪🇸 Spanish" },
-  { value: "fr", label: "🇫🇷 French" },
-  { value: "de", label: "🇩🇪 German" },
-  { value: "zh", label: "🇨🇳 Chinese" },
   { value: "am", label: "🇪🇹 Amharic" },
+  { value: "om", label: "🇪🇹 Oromo" },
 ];
 
 export const timezones = [

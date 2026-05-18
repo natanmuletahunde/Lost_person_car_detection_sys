@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const locales = ['en', 'am'];
+const locales = ['en', 'am', 'om'];
 const defaultLocale = 'en';
 
 export function middleware(request: NextRequest) {
@@ -38,7 +38,8 @@ export function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-locale', locale);
 
-  const response = NextResponse.rewrite(new URL(cleanPath, request.url), {
+  const cleanUrl = new URL(cleanPath + request.nextUrl.search, request.url);
+  const response = NextResponse.rewrite(cleanUrl, {
     request: {
       headers: requestHeaders,
     },
