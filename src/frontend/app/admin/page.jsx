@@ -8,12 +8,13 @@ import {
 } from '@mantine/core';
 import { 
   IconSearch, IconSettings, IconBell, IconUsers, IconShoppingCart, IconCar, 
-  IconChevronRight, IconCircleCheck 
+  IconChevronRight, IconCircleCheck, IconDownload
 } from '@tabler/icons-react';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, AreaChart, Area, CartesianGrid 
 } from 'recharts';
+import Link from 'next/link';
 
 // Helper to get dynamic background/color values
 const getBg = (colorScheme, light, dark) => (colorScheme === 'dark' ? dark : light);
@@ -35,14 +36,16 @@ export default function FullWidthDashboard() {
   const [recentUsers, setRecentUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const [localStats, setLocalStats] = useState(null);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const [d, f, usersPayload] = await Promise.all([
-          adminFetch('/admin/dashboard'),
-          adminFetch('/admin/finance?period=30d'),
-          adminFetch('/admin/users?page=1&limit=5'),
+          adminFetch('/admin/dashboard').catch(() => ({})),
+          adminFetch('/admin/finance?period=30d').catch(() => ({})),
+          adminFetch('/admin/users?page=1&limit=5').catch(() => ({})),
         ]);
         if (cancelled) return;
         setDash(d);
@@ -60,34 +63,101 @@ export default function FullWidthDashboard() {
         console.error(e);
       }
     })();
+
+    // Read local mock cases
+    try {
+      const mockCases = JSON.parse(localStorage.getItem('admin_mock_cases') || '[]');
+      const missingPersonCount = mockCases.filter(c => c.type === 'Person' || c.type === 'Special').length;
+      const missingVehicleCount = mockCases.filter(c => c.type === 'Vehicle').length;
+      const activeCases = mockCases.filter(c => c.status === 'Active').length;
+      const resolvedCases = mockCases.filter(c => c.status === 'Resolved').length;
+      const totalCases = mockCases.length;
+      
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const weeklyStatsObj = {
+        'Sat': { name: 'Sat', Subscription: 0, Registration: 0 },
+        'Sun': { name: 'Sun', Subscription: 0, Registration: 0 },
+        'Mon': { name: 'Mon', Subscription: 0, Registration: 0 },
+        'Tue': { name: 'Tue', Subscription: 0, Registration: 0 },
+        'Wed': { name: 'Wed', Subscription: 0, Registration: 0 },
+        'Thu': { name: 'Thu', Subscription: 0, Registration: 0 },
+        'Fri': { name: 'Fri', Subscription: 0, Registration: 0 },
+      };
+      
+      mockCases.forEach(c => {
+        const date = new Date(c.reportDate);
+        if (!isNaN(date)) {
+          const dayName = days[date.getDay()];
+          if (weeklyStatsObj[dayName]) {
+            weeklyStatsObj[dayName].Registration += 1;
+          }
+        }
+      });
+      
+      const weeklyStats = ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map(d => weeklyStatsObj[d]);
+
+      setLocalStats({
+        missingPersonCount,
+        missingVehicleCount,
+        activeCases,
+        resolvedCases,
+        totalCases,
+        weeklyStats
+      });
+    } catch (e) {
+      console.error(e);
+    }
+
     return () => {
       cancelled = true;
     };
   }, []);
 
-  const weeklyData = useMemo(() => {
-    return dash?.stats?.weeklyStats || FALLBACK_WEEKLY;
-  }, [dash]);
+  const displayStats = useMemo(() => {
+    const apiStats = dash?.stats || {};
+    const ls = localStats || {};
+    
+    const missingPersonCount = (apiStats.missingPersonCount || 0) + (ls.missingPersonCount || 0);
+    const missingVehicleCount = (apiStats.missingVehicleCount || 0) + (ls.missingVehicleCount || 0);
+    const activeCases = (apiStats.activeCases || 0) + (ls.activeCases || 0);
+    const resolvedCases = (apiStats.resolvedCases || 0) + (ls.resolvedCases || 0);
+    const totalCases = (apiStats.totalCases || 0) + (ls.totalCases || 0);
+    
+    const resolutionRate = totalCases > 0 ? Math.round((resolvedCases / totalCases) * 100) : 0;
+    
+    const weeklyStats = (apiStats.weeklyStats || FALLBACK_WEEKLY).map(dayData => {
+      const lsDay = ls.weeklyStats?.find(d => d.name === dayData.name) || { Registration: 0, Subscription: 0 };
+      return {
+        name: dayData.name,
+        Subscription: (dayData.Subscription || 0) + (lsDay.Subscription || 0),
+        Registration: (dayData.Registration || 0) + (lsDay.Registration || 0)
+      };
+    });
+
+    return {
+      missingPersonCount,
+      missingVehicleCount,
+      activeCases,
+      resolvedCases,
+      totalCases,
+      resolutionRate,
+      weeklyStats
+    };
+  }, [dash, localStats]);
+
+  const weeklyData = displayStats.weeklyStats;
 
   const pieData = useMemo(() => {
-    const s = dash?.stats;
-    if (!s) {
-      return [
-        { name: 'Active', value: 0, color: '#4318FF' },
-        { name: 'Resolved', value: 0, color: '#FFB800' },
-        { name: 'Other', value: 0, color: '#6AD2FF' },
-      ];
-    }
-    const active = Number(s.activeCases) || 0;
-    const resolved = Number(s.resolvedCases) || 0;
-    const other = Math.max(0, (Number(s.totalCases) || 0) - active - resolved);
+    const active = displayStats.activeCases || 0;
+    const resolved = displayStats.resolvedCases || 0;
+    const other = Math.max(0, (displayStats.totalCases || 0) - active - resolved);
     const sum = active + resolved + other || 1;
     return [
       { name: 'Active', value: Math.round((active / sum) * 100), color: '#4318FF' },
       { name: 'Resolved', value: Math.round((resolved / sum) * 100), color: '#FFB800' },
       { name: 'Other', value: Math.max(0, 100 - Math.round((active / sum) * 100) - Math.round((resolved / sum) * 100)), color: '#6AD2FF' },
     ];
-  }, [dash]);
+  }, [displayStats]);
 
   const subscriptionData =
     recentUsers.length > 0
@@ -116,22 +186,25 @@ export default function FullWidthDashboard() {
       <Group justify="space-between" mb="xl">
         <Title order={2} fw={700} c={primaryText}>Overview</Title>
         <Group bg={headerBg} p={8} style={{ borderRadius: '30px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-          <TextInput 
-            variant="unstyled" 
-            placeholder="Search for something" 
-            leftSection={<IconSearch size={18} color="gray" />} 
-            styles={{
-              input: {
-                backgroundColor: inputBg,
-                borderRadius: '20px',
-                height: '35px',
-                paddingLeft: '40px',
-                color: inputText,
-              }
-            }}
-          />
-          <ActionIcon variant="transparent" color="gray"><IconSettings size={20} /></ActionIcon>
-          <ActionIcon variant="transparent" color="red"><IconBell size={20} /></ActionIcon>
+          <Tooltip label="Settings">
+            <Link href="/admin/settings" passHref style={{ textDecoration: 'none' }}>
+              <ActionIcon variant="subtle" color="blue" size="lg">
+                <IconSettings size={20} />
+              </ActionIcon>
+            </Link>
+          </Tooltip>
+          <Tooltip label="Notifications">
+            <Link href="/admin/notification" passHref style={{ textDecoration: 'none' }}>
+              <ActionIcon variant="subtle" color="red" size="lg">
+                <IconBell size={20} />
+              </ActionIcon>
+            </Link>
+          </Tooltip>
+          <Tooltip label="Refresh">
+            <ActionIcon variant="subtle" color="blue" size="lg" onClick={() => window.location.reload()}>
+              <IconDownload size={20} />
+            </ActionIcon>
+          </Tooltip>
         </Group>
       </Group>
 
@@ -139,19 +212,19 @@ export default function FullWidthDashboard() {
       <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="lg" mb="lg">
         <StatCard
           label="Missing Persons"
-          value={dash?.stats?.missingPersonCount != null ? String(dash.stats.missingPersonCount) : '—'}
+          value={String(displayStats.missingPersonCount)}
           color="#FFB800"
           icon={<IconUsers />}
         />
         <StatCard
           label="Missing Vehicles"
-          value={dash?.stats?.missingVehicleCount != null ? String(dash.stats.missingVehicleCount) : '—'}
+          value={String(displayStats.missingVehicleCount)}
           color="#FFB800"
           icon={<IconCar />}
         />
         <StatCard
           label="Resolved Cases"
-          value={dash?.stats?.resolvedCases != null ? String(dash.stats.resolvedCases) : '—'}
+          value={String(displayStats.resolvedCases)}
           color="#FFB800"
           icon={<IconCircleCheck />}
         />
@@ -161,21 +234,21 @@ export default function FullWidthDashboard() {
       <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="lg" mb="xl">
         <StatCard
           label="Active cases"
-          value={dash?.stats?.activeCases != null ? String(dash.stats.activeCases) : '—'}
+          value={String(displayStats.activeCases)}
           color="#BDEAF0"
           darkText
           icon={<IconShoppingCart />}
         />
         <StatCard
           label="Resolved cases"
-          value={dash?.stats?.resolvedCases != null ? String(dash.stats.resolvedCases) : '—'}
+          value={String(displayStats.resolvedCases)}
           color="#BDEAF0"
           darkText
           icon={<IconShoppingCart />}
         />
         <StatCard
           label="Resolution rate"
-          value={dash?.stats?.resolutionRate != null ? `${dash.stats.resolutionRate}%` : '—'}
+          value={`${displayStats.resolutionRate}%`}
           color="#BDEAF0"
           darkText
           icon={<IconCar />}
@@ -332,6 +405,10 @@ export default function FullWidthDashboard() {
                       <stop offset="5%" stopColor="#4318FF" stopOpacity={0.2}/>
                       <stop offset="95%" stopColor="#4318FF" stopOpacity={0}/>
                     </linearGradient>
+                    <linearGradient id="colorReg" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#6AD2FF" stopOpacity={0.2}/>
+                      <stop offset="95%" stopColor="#6AD2FF" stopOpacity={0}/>
+                    </linearGradient>
                   </defs>
                   <CartesianGrid
                     strokeDasharray="3 3"
@@ -363,6 +440,13 @@ export default function FullWidthDashboard() {
                     stroke="#4318FF"
                     strokeWidth={4}
                     fill="url(#colorSub)"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="Registration"
+                    stroke="#6AD2FF"
+                    strokeWidth={4}
+                    fill="url(#colorReg)"
                   />
                 </AreaChart>
               </ResponsiveContainer>
