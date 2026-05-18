@@ -109,35 +109,32 @@ export default function CarsPage() {
         </Alert>
       ) : (
         <SimpleGrid cols={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing="lg">
-          {missingVehicles.map((vehicle) => (
-            <Card
-              key={vehicle.id}
-              radius="md"
-              p={0}
-              withBorder
-              bg={getBg("white", "#2C2E33")}
-            >
-              <Box style={{ position: "relative", height: 200 }}>
-                {vehicle.imagePreview ? (
-                  <Image
-                    src={getImageUrl(vehicle.imagePreview) || "/default-car.jpg"}
-                    fill
-                    alt={vehicle.brand}
-                    style={{ objectFit: "cover" }}
-                  />
-                ) : (
-                  <Center bg="gray.2" h="100%">
-                    <IconCar size={48} color="gray" />
-                  </Center>
-                )}
-              </Box>
-              <Box p="md">
-                <Text size="md" fw={700} lineClamp={1}>
-                  {vehicle.brand} {vehicle.model}
-                </Text>
-                {vehicle.submodel && (
-                  <Text size="sm" c="dimmed" lineClamp={1}>
-                    {vehicle.submodel}
+          {missingVehicles.map((vehicle) => {
+            return (
+              <Card
+                key={vehicle.id}
+                radius="md"
+                p={0}
+                withBorder
+                bg={getBg("white", "#2C2E33")}
+              >
+                <Box style={{ position: "relative", height: 200 }}>
+                  {vehicle.imagePreview ? (
+                    <Image
+                      src={getImageUrl(vehicle.imagePreview) || "/default-car.jpg"}
+                      fill
+                      alt={vehicle.brand}
+                      style={{ objectFit: "cover" }}
+                    />
+                  ) : (
+                    <Center bg="gray.2" h="100%">
+                      <IconCar size={48} color="gray" />
+                    </Center>
+                  )}
+                </Box>
+                <Box p="md">
+                  <Text size="md" fw={700} lineClamp={1}>
+                    {vehicle.brand} {vehicle.model}
                   </Text>
                   {vehicle.submodel && (
                     <Text size="sm" c="dimmed" lineClamp={1}>
@@ -164,7 +161,7 @@ export default function CarsPage() {
                   <Button
                     component={Link}
                     href={`/user/report-sighting?type=Vehicle&caseId=${
-                      vehicle.caseId || vehicleId
+                      vehicle.caseId || vehicle.id
                     }&plateNumber=${encodeURIComponent(
                       vehicle.plateNumber || ""
                     )}&brand=${encodeURIComponent(
