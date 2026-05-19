@@ -1112,6 +1112,7 @@
   "Common": {
     "unknown": "Unknown",
     "active": "Active",
-    "inactive": "Inactive"
+    "inactive": "Inactive",
+    "searchPlaceholder": "Search..."
   }
 }
