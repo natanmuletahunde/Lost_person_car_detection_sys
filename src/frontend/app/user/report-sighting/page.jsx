@@ -40,7 +40,6 @@ import Link from 'next/link';
 import MainFooter from '../../components/MainFooter';
 import DashboardHeader from '../dashboard/DashboardHeader'; 
 import { useMediaQuery } from '@mantine/hooks';
-import { useTranslations } from 'next-intl';
 
 // Real backend API URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api/v1';
@@ -80,6 +79,7 @@ function ReportSightingPageContent() {
   const theme = useMantineTheme();
   const { colorScheme } = useMantineColorScheme();
   const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
+  
 
   // Read query parameters for dynamic message & prefill
   const caseId = searchParams.get('caseId');
@@ -418,7 +418,7 @@ function ReportSightingPageContent() {
           />
 
           <Title order={2} mb="md" style={{ color: PRIMARY_DARK, fontWeight: 800 }}>
-            {t('title')}
+            {"Report a Sighting"}
           </Title>
           <Text mb="xl" c="dimmed" size="sm">
             {getPromptText()}
@@ -539,7 +539,7 @@ function ReportSightingPageContent() {
                   height: '50px',
                 }}
               >
-                {isSubmitting ? t('submitting') : t('submit')}
+                {isSubmitting ? t('submitting') : "Submit Report"}
               </Button>
             </SimpleGrid>
           </Card>
